@@ -9,16 +9,16 @@ import reactor.core.publisher.Flux;
 @Service
 public class UserIdSplitterMediatorImpl implements UserIdSplitterMediator{
     private final RetrieveUserIdService retrieveUserIdService;
-    private final MessagePreparationService messagePreparationService;
+    private final MessageKeyedPreparation messageKeyedPreparation;
 
-    public UserIdSplitterMediatorImpl(RetrieveUserIdService retrieveUserIdService, MessagePreparationService messagePreparationService) {
+    public UserIdSplitterMediatorImpl(RetrieveUserIdService retrieveUserIdService, MessageKeyedPreparation messageKeyedPreparation) {
         this.retrieveUserIdService = retrieveUserIdService;
-        this.messagePreparationService = messagePreparationService;
+        this.messageKeyedPreparation = messageKeyedPreparation;
     }
 
     @Override
     public Flux<Message<TransactionEnrichedDTO>> execute(Flux<TransactionDTO> transactionDTOFlux) {
         return transactionDTOFlux.map(this.retrieveUserIdService::updateTransaction)
-                .map(messagePreparationService::getMessage);
+                .map(messageKeyedPreparation);
     }
 }

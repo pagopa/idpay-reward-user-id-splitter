@@ -6,11 +6,17 @@ import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.process.runtime.Executable;
+import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
+import kafka.tools.ConsoleConsumer;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +38,8 @@ import java.lang.reflect.Field;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -44,7 +52,8 @@ import static org.awaitility.Awaitility.await;
 @EmbeddedKafka(topics = {
         "${spring.cloud.stream.bindings.trxProcessor-in-0.destination}",
         "${spring.cloud.stream.bindings.trxProcessor-out-0.destination}",
-}, controlledShutdown = true)
+},
+        partitions = 2 , controlledShutdown = true)
 @TestPropertySource(
         properties = {
                 //region kafka brokers
@@ -76,6 +85,9 @@ public abstract class BaseIntegrationTest {
     private MongodExecutable embeddedMongoServer;
 
     @Autowired
+    protected HpanInitiativesRepository hpanInitiativesRepository;
+
+    @Autowired
     protected ObjectMapper objectMapper;
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -85,11 +97,9 @@ public abstract class BaseIntegrationTest {
 
 
     @Value("${spring.cloud.stream.bindings.trxProcessor-in-0.destination}")
-    protected String topicRewardProcessorRequest;
+    protected String topicTransactionInput;
     @Value("${spring.cloud.stream.bindings.trxProcessor-out-0.destination}")
-    protected String topicRewardProcessorOutcome;
-    @Value("${spring.cloud.stream.bindings.rewardRuleConsumer-in-0.destination}")
-    protected String topicRewardRuleConsumer;
+    protected String topicKeyedTransactionOutput;
 
     @BeforeAll
     public static void unregisterPreviouslyKafkaServers() throws MalformedObjectNameException, MBeanRegistrationException, InstanceNotFoundException {
@@ -124,6 +134,18 @@ public abstract class BaseIntegrationTest {
 
         Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(groupId, "true", kafkaBroker);
         DefaultKafkaConsumerFactory<String, String> cf = new DefaultKafkaConsumerFactory<>(consumerProps);
+        Consumer<String, String> consumer = cf.createConsumer();
+        kafkaBroker.consumeFromAnEmbeddedTopic(consumer, topic);
+        return consumer;
+    }
+
+    protected Consumer<String, String> getEmbeddedKafkaConsumerWithStringDeserializer(String topic,String groupId) {
+        if (!kafkaBroker.getTopics().contains(topic)) {
+            kafkaBroker.addTopics(topic);
+        }
+
+        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(groupId, "true", kafkaBroker);
+        DefaultKafkaConsumerFactory<String, String> cf = new DefaultKafkaConsumerFactory<>(consumerProps,new StringDeserializer(),new StringDeserializer());
         Consumer<String, String> consumer = cf.createConsumer();
         kafkaBroker.consumeFromAnEmbeddedTopic(consumer, topic);
         return consumer;

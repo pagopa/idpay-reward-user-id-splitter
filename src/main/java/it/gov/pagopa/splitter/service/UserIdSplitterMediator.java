@@ -6,10 +6,6 @@ import org.springframework.messaging.Message;
 import reactor.core.publisher.Flux;
 
 /**
- * This component will take {@link TransactionDTO} and will enrich it with userId and added key messages
- * */
-
-/**
  * This component given a {@link TransactionDTO}:
  * <ol>
  *     <li>enrich it with userId</li>

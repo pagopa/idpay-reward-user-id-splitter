@@ -21,10 +21,8 @@ public final class HpanInitiativesFaker {
     public static HpanInitiatives mockInstance(Integer bias){
         HpanInitiatives out = new HpanInitiatives();
 
-        FakeValuesService fakeValuesService = getFakeValuesService(bias);
-
-        out.setHpan(fakeValuesService.bothify("?????"));
-        out.setUserId(fakeValuesService.bothify("?????"));
+        out.setHpan("HPAN%s".formatted(bias));
+        out.setUserId("%sUSERID%s_%s".formatted(bias,bias,bias));
 
         OnboardedInitiative onboardedInitiative = OnboardedInitiative.builder()
                 .initiativeId(String.format("INITIATIVE_%d",bias))

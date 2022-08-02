@@ -4,9 +4,11 @@ import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedMapper;
 import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class RetrieveUserIdServiceImpl implements RetrieveUserIdService{
     private final HpanInitiativesRepository hpanInitiativesRepository;
     private final Transaction2EnrichedMapper transaction2EnrichedMapper;
@@ -21,6 +23,4 @@ public class RetrieveUserIdServiceImpl implements RetrieveUserIdService{
         return hpanInitiativesRepository.findById(transactionDTO.getHpan())
                 .map(h -> transaction2EnrichedMapper.apply(transactionDTO,h.getUserId())).block();
     }
-
-
 }

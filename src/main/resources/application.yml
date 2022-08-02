@@ -41,7 +41,9 @@ spring:
                   kafka:
                     binder:
                       brokers: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_BROKER:${KAFKA_BROKER:}}
-                      configuration.sasl.jaas.config: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_SASL_JAAJ_CONFIG:}
+                      configuration:
+                        sasl.jaas.config: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_SASL_JAAJ_CONFIG:}
+                        key.serializer: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
       kafka:
         binder:
           auto-create-topics: false
@@ -106,4 +108,3 @@ app:
       refresh-ms-rate: ${CACHE_REFRESH_MS_RATE:10000}
   threads:
     schedule-max-number: ${THREADS_SCHEDULE_MAX_NUMBER:1}
-
