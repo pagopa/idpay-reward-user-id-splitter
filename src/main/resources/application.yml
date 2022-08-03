@@ -10,7 +10,7 @@ spring:
   cloud:
     stream:
       function:
-        definition: trxProcessor
+        definition: trxProcessor;trxRejectedProducer
       bindings:
         trxProcessor-in-0:
           destination: ${KAFKA_RTD_TOPIC:rtd-trx}
@@ -21,6 +21,10 @@ spring:
           destination: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_TOPIC:idpay-transaction-user-id-splitter}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-idpay
+        trxRejectedProducer-out-0:
+          destination: ${KAFKA_TRANSACTION_TOPIC:idpay-transaction}
+          content-type: ${KAFKA_CONTENT_TYPE:application/json}
+          binder: kafka-idpay-transaction
       binders:
         kafka-rtd:
           type: kafka
@@ -44,6 +48,16 @@ spring:
                       configuration:
                         sasl.jaas.config: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_SASL_JAAJ_CONFIG:}
                         key.serializer: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+        kafka-idpay-transaction:
+          type: kafka
+          environment:
+            spring:
+              cloud:
+                stream:
+                  kafka:
+                    binder:
+                      brokers: ${KAFKA_TRANSACTION_BROKER:${KAFKA_BROKER:}}
+                      configuration.sasl.jaas.config: ${KAFKA_TRANSACTION_SASL_JAAJ_CONFIG:}
       kafka:
         binder:
           auto-create-topics: false

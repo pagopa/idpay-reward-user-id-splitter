@@ -3,16 +3,16 @@ package it.gov.pagopa.splitter.service;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedMapper;
+import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedWithoutUserIdMapper;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.messaging.Message;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-class UserIdSplitterMediatorImplTest {
+class UserIdSplitterMediatorImplTest { //TODO
 
     @Test
     void testExecute() {
@@ -38,11 +38,33 @@ class UserIdSplitterMediatorImplTest {
 
 
         // When
+        //Tuple2<Flux<Message<TransactionEnrichedDTO>>, Flux<RejectionTransactionDTO>> result = mediator.execute(transactionDTOFlux);
+        Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
+        // Then
+
+    }
+
+    @Test
+    void testExecuteWithUserIdNull() {
+        // Given
+        RetrieveUserIdService retrieveUserIdService= Mockito.mock(RetrieveUserIdServiceImpl.class);
+        MessageKeyedPreparation messageKeyedPreparation = Mockito.mock(MessageKeyedPreparationImpl.class);
+
+        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation);
+
+        TransactionDTO transactionDTO1 = TransactionDTOFaker.mockInstance(1);
+        TransactionDTO transactionDTO2 = TransactionDTOFaker.mockInstance(2);
+        Flux<TransactionDTO> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2);
+
+        TransactionEnrichedDTO transactionEnrichedDTO1 = new Transaction2EnrichedWithoutUserIdMapper().apply(transactionDTO1);
+        TransactionEnrichedDTO transactionEnrichedDTO2 = new Transaction2EnrichedWithoutUserIdMapper().apply(transactionDTO2);
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(transactionEnrichedDTO1);
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(transactionEnrichedDTO2);
+
+
+        // When
         Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
 
         // Then
-        Assertions.assertEquals(2L,result.count().block());
-
-
     }
 }

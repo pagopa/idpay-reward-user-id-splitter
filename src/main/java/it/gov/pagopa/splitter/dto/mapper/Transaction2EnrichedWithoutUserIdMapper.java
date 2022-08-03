@@ -1,0 +1,37 @@
+package it.gov.pagopa.splitter.dto.mapper;
+
+import it.gov.pagopa.splitter.dto.TransactionDTO;
+import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
+import org.springframework.stereotype.Service;
+
+import java.util.function.Function;
+
+@Service
+public class Transaction2EnrichedWithoutUserIdMapper implements Function<TransactionDTO, TransactionEnrichedDTO> {
+    @Override
+    public TransactionEnrichedDTO apply(TransactionDTO transactionDTO) {
+        TransactionEnrichedDTO out = new TransactionEnrichedDTO();
+
+        out.setIdTrxAcquirer(transactionDTO.getIdTrxAcquirer());
+        out.setAcquirerCode(transactionDTO.getAcquirerCode());
+        out.setTrxDate(transactionDTO.getTrxDate());
+        out.setHpan(transactionDTO.getHpan());
+        out.setOperationType(transactionDTO.getOperationType());
+        out.setCircuitType(transactionDTO.getCircuitType());
+        out.setIdTrxIssuer(transactionDTO.getIdTrxIssuer());
+        out.setCorrelationId(transactionDTO.getCorrelationId());
+        out.setAmount(transactionDTO.getAmount());
+        out.setAmountCurrency(transactionDTO.getAmountCurrency());
+        out.setMcc(transactionDTO.getMcc());
+        out.setAcquirerId(transactionDTO.getAcquirerId());
+        out.setMerchantId(transactionDTO.getMerchantId());
+        out.setTerminalId(transactionDTO.getTerminalId());
+        out.setBin(transactionDTO.getBin());
+        out.setSenderCode(transactionDTO.getSenderCode());
+        out.setFiscalCode(transactionDTO.getFiscalCode());
+        out.setVat(transactionDTO.getVat());
+        out.setPosType(transactionDTO.getPosType());
+        out.setPar(transactionDTO.getPar());
+        return out;
+    }
+}
