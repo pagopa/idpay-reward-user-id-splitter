@@ -19,6 +19,6 @@ public class UserIdSplitterMediatorImpl implements UserIdSplitterMediator{
     @Override
     public Flux<Message<TransactionEnrichedDTO>> execute(Flux<TransactionDTO> transactionDTOFlux) {
         return transactionDTOFlux.mapNotNull(this.retrieveUserIdService::updateTransaction)
-                .map(messageKeyedPreparation);
+                .mapNotNull(messageKeyedPreparation);
     }
 }

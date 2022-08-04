@@ -1,6 +1,8 @@
 package it.gov.pagopa.splitter.test.utils;
 
+import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
+import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.util.ReflectionUtils;
 
@@ -23,16 +25,18 @@ public class TestUtils {
 
     }
 
-    public static void checkTransactionEnrichedFatherNotNullFields(TransactionEnrichedDTO o, String... excludedFields){
-        Set<String> excludedFieldsSet = new HashSet<>(Arrays.asList(excludedFields));
-        org.springframework.util.ReflectionUtils.doWithFields(o.getClass().getSuperclass(),
-                getFieldCallback(o),
-                f -> !excludedFieldsSet.contains(f.getName()));
+    public static void checkTransactionNotNullFields(TransactionDTO o, String... excludedFields){
+        checkNotNullFields(o,excludedFields);
     }
 
     public static void checkTransactionEnrichedNotNullFields(TransactionEnrichedDTO o, String... excludedFields) {
         checkNotNullFields(o,excludedFields);
-        checkTransactionEnrichedFatherNotNullFields(o,excludedFields);
+        checkTransactionNotNullFields(o,excludedFields);
+    }
+
+    public static void checkTransactionRejectedNotNullFields(TransactionRejectedDTO o, String... excludedFields) {
+        checkNotNullFields(o,excludedFields);
+        checkTransactionEnrichedNotNullFields(o,excludedFields);
     }
 
     private static ReflectionUtils.FieldCallback getFieldCallback(Object o) {

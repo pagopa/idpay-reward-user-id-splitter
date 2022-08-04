@@ -18,9 +18,9 @@ public class TransactionRejectedProducer {
     }
 
     @Bean
-    public Supplier<Flux<TransactionRejectedDTO>> trxRejectedProducer(Sinks.Many<TransactionRejectedDTO> many) {
-        return () -> many.asFlux()
-                .doOnNext(trx -> log.info("Sending message: {}", trx))
+    public Supplier<Flux<TransactionRejectedDTO>> trxRejectedProducer(Sinks.Many<TransactionRejectedDTO> trxRejectedMany) {
+        return () -> trxRejectedMany.asFlux()
+                .doOnNext(trx -> log.trace("Sending message: {}", trx))
                 .doOnError(e -> log.error("Error encountered", e));
     }
 
