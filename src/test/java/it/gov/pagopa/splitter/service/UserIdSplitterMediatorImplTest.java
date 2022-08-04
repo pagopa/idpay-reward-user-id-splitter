@@ -9,7 +9,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 class UserIdSplitterMediatorImplTest {
@@ -29,12 +31,12 @@ class UserIdSplitterMediatorImplTest {
 
         TransactionEnrichedDTO transactionEnrichedDTO1 = new Transaction2EnrichedMapper().apply(transactionDTO1,"USERID1");
         TransactionEnrichedDTO transactionEnrichedDTO2 = new Transaction2EnrichedMapper().apply(transactionDTO2,"USERID2");
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(transactionEnrichedDTO1);
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(transactionEnrichedDTO2);
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO3)).thenReturn(null);
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(Mono.just(transactionEnrichedDTO1));
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(Mono.just(transactionEnrichedDTO2));
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO3)).thenReturn(Mono.empty());
 
-        Message message1 = Mockito.mock(Message.class);
-        Message message2 = Mockito.mock(Message.class);
+        Message<TransactionEnrichedDTO> message1 = MessageBuilder.withPayload(new TransactionEnrichedDTO()).build();
+        Message<TransactionEnrichedDTO> message2 = MessageBuilder.withPayload(new TransactionEnrichedDTO()).build();
         Mockito.when(messageKeyedPreparation.apply(transactionEnrichedDTO1)).thenReturn(message1);
         Mockito.when(messageKeyedPreparation.apply(transactionEnrichedDTO2)).thenReturn(message2);
 

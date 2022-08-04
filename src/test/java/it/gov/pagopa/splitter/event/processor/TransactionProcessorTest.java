@@ -23,7 +23,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
     @Test
     void trxProcessor() {
-        int transactionInputNumber = 101;
+        int transactionInputNumber =101;
         int transactionInputInvalidHpanNumber=50;
         long maxWaitingMs=30000;
 
@@ -32,11 +32,13 @@ class TransactionProcessorTest extends BaseIntegrationTest {
         //region send a TransactionsDTO
         long timePublishTransactionsStart=System.currentTimeMillis();
         IntStream.range(0, transactionInputInvalidHpanNumber)
-                .mapToObj(TransactionDTOFaker::mockInstance)
+                .mapToObj(i -> TransactionDTOFaker.mockInstance(i+hpanInitiativeNumber))
                 .forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
 
         IntStream.range(0, transactionInputNumber)
-                .mapToObj(n->TransactionDTOFaker.mockInstanceWithNHpan(n,hpanInitiativeNumber))
+                .mapToObj(n->TransactionDTOFaker.mockInstanceBuilder(n)
+                        .hpan("HPAN%s".formatted(n%hpanInitiativeNumber))
+                        .build())
                 .forEach( t -> publishIntoEmbeddedKafka(topicTransactionInput,null, null,t));
         //endregion
 

@@ -19,6 +19,9 @@ public class TransactionRejectedSenderServiceImpl implements TransactionRejected
     @Override
     public void sendTransactionRejected(TransactionDTO transactionDTO) {
         TransactionRejectedDTO transactionRejectedDTO = transaction2RejectionMapper.apply(transactionDTO,"REJECTION_FOR_HPAN_NOT_VALID");
-        trxRejectedMany.emitNext(transactionRejectedDTO, Sinks.EmitFailureHandler.FAIL_FAST);
+        synchronized (trxRejectedMany)
+        {
+            trxRejectedMany.emitNext(transactionRejectedDTO, Sinks.EmitFailureHandler.FAIL_FAST);
+        }
     }
 }

@@ -9,6 +9,5 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @ToString(callSuper = true)
 public class TransactionEnrichedDTO extends TransactionDTO {
-    @Builder.Default
-    private String userId = null;
+    private String userId;
 }

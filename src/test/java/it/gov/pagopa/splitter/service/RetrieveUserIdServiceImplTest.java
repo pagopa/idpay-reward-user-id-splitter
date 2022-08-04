@@ -33,7 +33,7 @@ class RetrieveUserIdServiceImplTest {
         //Mockito.when(transaction2EnrichedMapper.apply(Mockito.same(transaction),Mockito.same(userId))).thenReturn(transactionEnrichedDTO);
 
         // When
-        TransactionEnrichedDTO result = retrieveUserIdService.updateTransaction(transaction);
+        TransactionEnrichedDTO result = retrieveUserIdService.updateTransaction(transaction).block();
 
         // Then
         Assertions.assertNotNull(result);
@@ -62,7 +62,7 @@ class RetrieveUserIdServiceImplTest {
         //Mockito.when(transaction2EnrichedMapper.apply(Mockito.same(transaction),Mockito.same(userId))).thenReturn(transactionEnrichedDTO);
 
         // When
-        TransactionEnrichedDTO result = retrieveUserIdService.updateTransaction(transaction);
+        TransactionEnrichedDTO result = retrieveUserIdService.updateTransaction(transaction).block();
 
         // Then
         Assertions.assertNull(result);

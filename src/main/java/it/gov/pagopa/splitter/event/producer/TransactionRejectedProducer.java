@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 @Configuration
 @Slf4j
 public class TransactionRejectedProducer {
+
     @Bean
     public Sinks.Many<TransactionRejectedDTO> trxRejectedMany(){
         return Sinks.many().unicast().onBackpressureBuffer();

@@ -52,7 +52,7 @@ public class TransactionDTOFaker {
                         trxDateTime,
                         ZoneId.of("Europe/Rome").getRules().getOffset(trxDateTime)
                 ))
-                .hpan("HPAN%s".formatted(bias))
+                .hpan("HPAN_%s".formatted(bias))
                 .operationType("OPERATIONTYPE%s".formatted(bias))
                 .circuitType("CIRCUITTYPE%s".formatted(bias))
                 .idTrxIssuer("IDTRXISSUER%s".formatted(bias))
@@ -90,7 +90,8 @@ public class TransactionDTOFaker {
                 .correlationId("CORRELATIONID%s".formatted(bias))
                 .amount(BigDecimal.valueOf(getRandomPositiveNumber(bias, 200)))
                 .amountCurrency("AMOUNTCURRENCY%s".formatted(bias))
-                .mcc("MCC%s".formatted(bias))
+                //.mcc("MCC%s".formatted(bias))
+                .mcc(bias%2==0 ? "2000":"4784")
                 .acquirerId("ACQUIRERID%s".formatted(bias))
                 .merchantId("MERCHANTID%s".formatted(bias))
                 .terminalId("TERMINALID%s".formatted(bias))
