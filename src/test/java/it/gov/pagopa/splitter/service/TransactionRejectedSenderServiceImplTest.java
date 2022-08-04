@@ -4,12 +4,9 @@ import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
 import it.gov.pagopa.splitter.dto.mapper.Transaction2RejectionMapper;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import reactor.core.publisher.Sinks;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class TransactionRejectedSenderServiceImplTest {
 

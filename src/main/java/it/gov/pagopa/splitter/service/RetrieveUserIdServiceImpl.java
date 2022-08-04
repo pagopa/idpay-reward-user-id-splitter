@@ -24,7 +24,6 @@ public class RetrieveUserIdServiceImpl implements RetrieveUserIdService{
 
     @Override
     public TransactionEnrichedDTO updateTransaction(TransactionDTO transactionDTO) {
-
         Mono<HpanInitiatives> hpan = hpanInitiativesRepository.findById(transactionDTO.getHpan());
         if(Boolean.TRUE.equals(hpan.hasElement().block())){
             return hpan.map(h -> transaction2EnrichedMapper.apply(transactionDTO,h.getUserId())).block();

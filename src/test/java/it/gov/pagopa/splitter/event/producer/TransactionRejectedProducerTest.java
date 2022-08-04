@@ -30,7 +30,6 @@ class TransactionRejectedProducerTest extends BaseIntegrationTest {
 
         //region send a TransactionsDTO
         long timePublishTransactionsStart=System.currentTimeMillis();
-
         IntStream.range(0, transactionInputInvalidHpanNumber)
                 .mapToObj(TransactionDTOFaker::mockInstance)
                 .forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
