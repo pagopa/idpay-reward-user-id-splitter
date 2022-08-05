@@ -13,12 +13,12 @@ import reactor.core.publisher.Mono;
 public class RetrieveUserIdServiceImpl implements RetrieveUserIdService {
     private final HpanInitiativesRepository hpanInitiativesRepository;
     private final Transaction2EnrichedMapper transaction2EnrichedMapper;
-    private final TransactionRejectedSenderService transactionRejectedSenderService;
+    private final SenderTransactionRejectedService senderTransactionRejectedService;
 
-    public RetrieveUserIdServiceImpl(HpanInitiativesRepository hpanInitiativesRepository, Transaction2EnrichedMapper transaction2EnrichedMapper, TransactionRejectedSenderService transactionRejectedSenderService) {
+    public RetrieveUserIdServiceImpl(HpanInitiativesRepository hpanInitiativesRepository, Transaction2EnrichedMapper transaction2EnrichedMapper, SenderTransactionRejectedService senderTransactionRejectedService) {
         this.hpanInitiativesRepository = hpanInitiativesRepository;
         this.transaction2EnrichedMapper = transaction2EnrichedMapper;
-        this.transactionRejectedSenderService = transactionRejectedSenderService;
+        this.senderTransactionRejectedService = senderTransactionRejectedService;
     }
 
     @Override
@@ -26,7 +26,7 @@ public class RetrieveUserIdServiceImpl implements RetrieveUserIdService {
         return hpanInitiativesRepository.findById(transactionDTO.getHpan())
                 .map(h -> transaction2EnrichedMapper.apply(transactionDTO, h.getUserId()))
                 .switchIfEmpty(Mono.defer(() -> {
-                    transactionRejectedSenderService.sendTransactionRejected(transactionDTO);
+                    senderTransactionRejectedService.sendTransactionRejected(transactionDTO);
                     return Mono.empty();
                 }));
 

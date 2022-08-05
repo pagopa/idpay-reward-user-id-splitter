@@ -21,13 +21,18 @@ class UserIdSplitterMediatorImplTest {
         // Given
         RetrieveUserIdService retrieveUserIdService= Mockito.mock(RetrieveUserIdServiceImpl.class);
         MessageKeyedPreparation messageKeyedPreparation =Mockito.mock(MessageKeyedPreparationImpl.class);
+        TransactionFilterService transactionFilterService = Mockito.mock(TransactionFilterServiceImpl.class);
 
-        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation);
+        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation, transactionFilterService);
 
         TransactionDTO transactionDTO1 = TransactionDTOFaker.mockInstance(1);
         TransactionDTO transactionDTO2 = TransactionDTOFaker.mockInstance(2);
         TransactionDTO transactionDTO3 = TransactionDTOFaker.mockInstance(3);
         Flux<TransactionDTO> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2,transactionDTO3);
+
+        Mockito.when(transactionFilterService.filter(transactionDTO1)).thenReturn(true);
+        Mockito.when(transactionFilterService.filter(transactionDTO2)).thenReturn(true);
+        Mockito.when(transactionFilterService.filter(transactionDTO3)).thenReturn(true);
 
         TransactionEnrichedDTO transactionEnrichedDTO1 = new Transaction2EnrichedMapper().apply(transactionDTO1,"USERID1");
         TransactionEnrichedDTO transactionEnrichedDTO2 = new Transaction2EnrichedMapper().apply(transactionDTO2,"USERID2");
@@ -57,22 +62,27 @@ class UserIdSplitterMediatorImplTest {
         // Given
         RetrieveUserIdService retrieveUserIdService= Mockito.mock(RetrieveUserIdServiceImpl.class);
         MessageKeyedPreparation messageKeyedPreparation = Mockito.mock(MessageKeyedPreparationImpl.class);
+        TransactionFilterService transactionFilterService = Mockito.mock(TransactionFilterServiceImpl.class);
 
-        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation);
+        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation, transactionFilterService);
 
         TransactionDTO transactionDTO1 = TransactionDTOFaker.mockInstance(1);
         TransactionDTO transactionDTO2 = TransactionDTOFaker.mockInstance(2);
         Flux<TransactionDTO> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2);
 
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(null);
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(null);
+        Mockito.when(transactionFilterService.filter(transactionDTO1)).thenReturn(true);
+        Mockito.when(transactionFilterService.filter(transactionDTO2)).thenReturn(true);
+
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(Mono.empty());
+        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(Mono.empty());
 
 
         // When
         Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
+        log.info(result.toString());
 
         // Then
-        Assertions.assertEquals(Boolean.FALSE, result.hasElements().block());
+        Assertions.assertEquals(0L, result.count().block());
         Mockito.verify(retrieveUserIdService, Mockito.times(2)).updateTransaction(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.never()).apply(Mockito.any(TransactionEnrichedDTO.class));
 

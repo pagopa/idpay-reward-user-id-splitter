@@ -27,5 +27,6 @@ class MessageKeyedPreparationImplTest {
         // Then
         log.info(Objects.requireNonNull(result.getHeaders().get(KafkaHeaders.MESSAGE_KEY)).toString());
         Assertions.assertEquals(userId, result.getHeaders().get(KafkaHeaders.MESSAGE_KEY));
+        Assertions.assertSame(transactionEnrichedDTO, result.getPayload());
     }
 }

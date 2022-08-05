@@ -10,7 +10,7 @@ spring:
   cloud:
     stream:
       function:
-        definition: trxProcessor;trxRejectedProducer
+        definition: trxProcessor
       bindings:
         trxProcessor-in-0:
           destination: ${KAFKA_RTD_TOPIC:rtd-trx}

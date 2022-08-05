@@ -48,7 +48,7 @@ import static org.awaitility.Awaitility.await;
         "${spring.cloud.stream.bindings.trxProcessor-out-0.destination}",
         "${spring.cloud.stream.bindings.trxRejectedProducer-out-0.destination}",
 },
-        partitions = 2 , controlledShutdown = true)
+        controlledShutdown = true)
 @TestPropertySource(
         properties = {
                 //region kafka brokers
@@ -98,7 +98,7 @@ public abstract class BaseIntegrationTest {
     protected String topicKeyedTransactionOutput;
 
     @Value("${spring.cloud.stream.bindings.trxRejectedProducer-out-0.destination}")
-    protected String topicTransactionOutput;
+    protected String topicTransactionRejectedOutput;
 
     @BeforeAll
     public static void unregisterPreviouslyKafkaServers() throws MalformedObjectNameException, MBeanRegistrationException, InstanceNotFoundException {
@@ -127,18 +127,6 @@ public abstract class BaseIntegrationTest {
     }
 
     protected Consumer<String, String> getEmbeddedKafkaConsumer(String topic, String groupId) {
-        if (!kafkaBroker.getTopics().contains(topic)) {
-            kafkaBroker.addTopics(topic);
-        }
-
-        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(groupId, "true", kafkaBroker);
-        DefaultKafkaConsumerFactory<String, String> cf = new DefaultKafkaConsumerFactory<>(consumerProps);
-        Consumer<String, String> consumer = cf.createConsumer();
-        kafkaBroker.consumeFromAnEmbeddedTopic(consumer, topic);
-        return consumer;
-    }
-
-    protected Consumer<String, String> getEmbeddedKafkaConsumerWithStringDeserializer(String topic,String groupId) {
         if (!kafkaBroker.getTopics().contains(topic)) {
             kafkaBroker.addTopics(topic);
         }
