@@ -6,11 +6,13 @@ import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.process.runtime.Executable;
+import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,9 @@ import static org.awaitility.Awaitility.await;
 @EmbeddedKafka(topics = {
         "${spring.cloud.stream.bindings.trxProcessor-in-0.destination}",
         "${spring.cloud.stream.bindings.trxProcessor-out-0.destination}",
-}, controlledShutdown = true)
+        "${spring.cloud.stream.bindings.trxRejectedProducer-out-0.destination}",
+},
+        controlledShutdown = true)
 @TestPropertySource(
         properties = {
                 //region kafka brokers
@@ -57,6 +61,7 @@ import static org.awaitility.Awaitility.await;
                 "spring.cloud.stream.kafka.binder.zkNodes=${spring.embedded.zookeeper.connect}",
                 "spring.cloud.stream.binders.kafka-rtd.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
                 "spring.cloud.stream.binders.kafka-idpay.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
+                "spring.cloud.stream.binders.kafka-idpay-transaction.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
                 //endregion
 
                 //region mongodb
@@ -76,6 +81,9 @@ public abstract class BaseIntegrationTest {
     private MongodExecutable embeddedMongoServer;
 
     @Autowired
+    protected HpanInitiativesRepository hpanInitiativesRepository;
+
+    @Autowired
     protected ObjectMapper objectMapper;
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -85,11 +93,12 @@ public abstract class BaseIntegrationTest {
 
 
     @Value("${spring.cloud.stream.bindings.trxProcessor-in-0.destination}")
-    protected String topicRewardProcessorRequest;
+    protected String topicTransactionInput;
     @Value("${spring.cloud.stream.bindings.trxProcessor-out-0.destination}")
-    protected String topicRewardProcessorOutcome;
-    @Value("${spring.cloud.stream.bindings.rewardRuleConsumer-in-0.destination}")
-    protected String topicRewardRuleConsumer;
+    protected String topicKeyedTransactionOutput;
+
+    @Value("${spring.cloud.stream.bindings.trxRejectedProducer-out-0.destination}")
+    protected String topicTransactionRejectedOutput;
 
     @BeforeAll
     public static void unregisterPreviouslyKafkaServers() throws MalformedObjectNameException, MBeanRegistrationException, InstanceNotFoundException {
@@ -123,7 +132,7 @@ public abstract class BaseIntegrationTest {
         }
 
         Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(groupId, "true", kafkaBroker);
-        DefaultKafkaConsumerFactory<String, String> cf = new DefaultKafkaConsumerFactory<>(consumerProps);
+        DefaultKafkaConsumerFactory<String, String> cf = new DefaultKafkaConsumerFactory<>(consumerProps,new StringDeserializer(),new StringDeserializer());
         Consumer<String, String> consumer = cf.createConsumer();
         kafkaBroker.consumeFromAnEmbeddedTopic(consumer, topic);
         return consumer;

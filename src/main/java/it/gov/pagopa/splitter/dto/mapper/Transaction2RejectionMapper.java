@@ -1,16 +1,17 @@
 package it.gov.pagopa.splitter.dto.mapper;
 
+import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
-import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.function.BiFunction;
 
 @Service
-public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO,String, TransactionEnrichedDTO> {
+public class Transaction2RejectionMapper implements BiFunction<TransactionDTO,String, TransactionRejectedDTO> {
+
     @Override
-    public TransactionEnrichedDTO apply(TransactionDTO transactionDTO, String userId) {
-        TransactionEnrichedDTO out = new TransactionEnrichedDTO();
+    public TransactionRejectedDTO apply(TransactionDTO transactionDTO, String rejectionReason) {
+        TransactionRejectedDTO out = new TransactionRejectedDTO();
 
         out.setIdTrxAcquirer(transactionDTO.getIdTrxAcquirer());
         out.setAcquirerCode(transactionDTO.getAcquirerCode());
@@ -33,7 +34,8 @@ public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO,Str
         out.setPosType(transactionDTO.getPosType());
         out.setPar(transactionDTO.getPar());
 
-        out.setUserId(userId);
+        out.getRejectionReasons().add(rejectionReason);
+        out.setStatus("REJECTED");
         return out;
     }
 }

@@ -22,8 +22,4 @@ public class TransactionProcessor {
         return userIdSplitterMediator::execute;
         //TODO - implement error handling
     }
-
-
-
-
 }
