@@ -22,7 +22,7 @@ public class UserIdSplitterMediatorImpl implements UserIdSplitterMediator{
     public Flux<Message<TransactionEnrichedDTO>> execute(Flux<TransactionDTO> transactionDTOFlux) {
         return transactionDTOFlux
                 .filter(this.transactionFilterService::filter)
-                .flatMap(this.retrieveUserIdService::updateTransaction)
+                .flatMap(this.retrieveUserIdService::resolveUserId)
                 .mapNotNull(this.messageKeyedPreparation);
 
     }

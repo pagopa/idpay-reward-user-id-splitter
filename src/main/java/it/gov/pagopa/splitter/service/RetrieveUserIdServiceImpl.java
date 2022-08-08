@@ -22,7 +22,7 @@ public class RetrieveUserIdServiceImpl implements RetrieveUserIdService {
     }
 
     @Override
-    public Mono<TransactionEnrichedDTO> updateTransaction(TransactionDTO transactionDTO) {
+    public Mono<TransactionEnrichedDTO> resolveUserId(TransactionDTO transactionDTO) {
         return hpanInitiativesRepository.findById(transactionDTO.getHpan())
                 .map(h -> transaction2EnrichedMapper.apply(transactionDTO, h.getUserId()))
                 .switchIfEmpty(Mono.defer(() -> {

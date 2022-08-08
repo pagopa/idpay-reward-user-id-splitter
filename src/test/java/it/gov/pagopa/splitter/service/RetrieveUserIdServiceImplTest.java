@@ -32,7 +32,7 @@ class RetrieveUserIdServiceImplTest {
         Mockito.when(transaction2EnrichedMapper.apply(Mockito.same(transaction),Mockito.eq(userId))).thenReturn(transactionEnrichedDTO);
 
         // When
-        TransactionEnrichedDTO result = retrieveUserIdService.updateTransaction(transaction).block();
+        TransactionEnrichedDTO result = retrieveUserIdService.resolveUserId(transaction).block();
 
         // Then
         Assertions.assertNotNull(result);
@@ -59,7 +59,7 @@ class RetrieveUserIdServiceImplTest {
         Mockito.when(hpanInitiativesRepository.findById(Mockito.anyString())).thenReturn(Mono.empty());
 
         // When
-        TransactionEnrichedDTO result = retrieveUserIdService.updateTransaction(transaction).block();
+        TransactionEnrichedDTO result = retrieveUserIdService.resolveUserId(transaction).block();
 
         // Then
         Assertions.assertNull(result);

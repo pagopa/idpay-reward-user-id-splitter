@@ -36,9 +36,9 @@ class UserIdSplitterMediatorImplTest {
 
         TransactionEnrichedDTO transactionEnrichedDTO1 = new Transaction2EnrichedMapper().apply(transactionDTO1,"USERID1");
         TransactionEnrichedDTO transactionEnrichedDTO2 = new Transaction2EnrichedMapper().apply(transactionDTO2,"USERID2");
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(Mono.just(transactionEnrichedDTO1));
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(Mono.just(transactionEnrichedDTO2));
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO3)).thenReturn(Mono.empty());
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO1)).thenReturn(Mono.just(transactionEnrichedDTO1));
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO2)).thenReturn(Mono.just(transactionEnrichedDTO2));
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO3)).thenReturn(Mono.empty());
 
         Message<TransactionEnrichedDTO> message1 = MessageBuilder.withPayload(new TransactionEnrichedDTO()).build();
         Message<TransactionEnrichedDTO> message2 = MessageBuilder.withPayload(new TransactionEnrichedDTO()).build();
@@ -51,7 +51,7 @@ class UserIdSplitterMediatorImplTest {
 
         // Then
         Assertions.assertEquals(2L, result.count().block());
-        Mockito.verify(retrieveUserIdService, Mockito.times(3)).updateTransaction(Mockito.any(TransactionDTO.class));
+        Mockito.verify(retrieveUserIdService, Mockito.times(3)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.times(2)).apply(Mockito.any(TransactionEnrichedDTO.class));
 
 
@@ -73,8 +73,8 @@ class UserIdSplitterMediatorImplTest {
         Mockito.when(transactionFilterService.filter(transactionDTO1)).thenReturn(true);
         Mockito.when(transactionFilterService.filter(transactionDTO2)).thenReturn(true);
 
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO1)).thenReturn(Mono.empty());
-        Mockito.when(retrieveUserIdService.updateTransaction(transactionDTO2)).thenReturn(Mono.empty());
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO1)).thenReturn(Mono.empty());
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO2)).thenReturn(Mono.empty());
 
 
         // When
@@ -83,7 +83,7 @@ class UserIdSplitterMediatorImplTest {
 
         // Then
         Assertions.assertEquals(0L, result.count().block());
-        Mockito.verify(retrieveUserIdService, Mockito.times(2)).updateTransaction(Mockito.any(TransactionDTO.class));
+        Mockito.verify(retrieveUserIdService, Mockito.times(2)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.never()).apply(Mockito.any(TransactionEnrichedDTO.class));
 
 
