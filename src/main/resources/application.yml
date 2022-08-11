@@ -1,6 +1,10 @@
 server:
   port: ${REWARD_CALCULATOR_PORT:8080}
 
+reactor:
+  bufferSize:
+    small: ${REACTOR_BUFFER_SIZE:256}
+
 spring:
   application:
     name: idpay-reward-calculator
@@ -29,35 +33,23 @@ spring:
         kafka-rtd:
           type: kafka
           environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    binder:
-                      brokers: ${KAFKA_RTD_BROKER:${KAFKA_BROKER:}}
-                      configuration.sasl.jaas.config: ${KAFKA_RTD_SASL_JAAJ_CONFIG:}
+            spring.cloud.stream.kafka.binder:
+              brokers: ${KAFKA_RTD_BROKER:${KAFKA_BROKER:}}
+              configuration.sasl.jaas.config: ${KAFKA_RTD_SASL_JAAJ_CONFIG:}
         kafka-idpay:
           type: kafka
           environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    binder:
-                      brokers: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_BROKER:${KAFKA_BROKER:}}
-                      configuration:
-                        sasl.jaas.config: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_SASL_JAAJ_CONFIG:}
-                        key.serializer: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+            spring.cloud.stream.kafka.binder:
+              brokers: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_BROKER:${KAFKA_BROKER:}}
+              configuration:
+                sasl.jaas.config: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_SASL_JAAJ_CONFIG:}
+                key.serializer: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
         kafka-idpay-transaction:
           type: kafka
           environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    binder:
-                      brokers: ${KAFKA_TRANSACTION_BROKER:${KAFKA_BROKER:}}
-                      configuration.sasl.jaas.config: ${KAFKA_TRANSACTION_SASL_JAAJ_CONFIG:}
+            spring.cloud.stream.kafka.binder:
+              brokers: ${KAFKA_TRANSACTION_BROKER:${KAFKA_BROKER:}}
+              configuration.sasl.jaas.config: ${KAFKA_TRANSACTION_SASL_JAAJ_CONFIG:}
       kafka:
         binder:
           auto-create-topics: false
@@ -67,20 +59,22 @@ spring:
             request.timeout.ms: ${KAFKA_CONFIG_REQUEST_TIMEOUT_MS:60000}
             sasl.mechanism: ${KAFKA_CONFIG_SASL_MECHANISM:PLAIN}
             security.protocol: ${KAFKA_CONFIG_SECURITY_PROTOCOL:SASL_SSL}
-          consumerProperties:
-            startOffset: ${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}
-            autoCommitOffset: ${KAFKA_CONSUMER_CONFIG_AUTO_COMMIT:true}
-            enableDlq: ${KAFKA_CONSUMER_CONFIG_ENABLE_DLQ:false}
-            dlqName: ${KAFKA_CONSUMER_CONFIG_DLQ_NAME:errorTopic}
-            standardHeaders: ${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}
-            configuration:
-              max.poll:
-                records: ${KAFKA_CONSUMER_CONFIG_MAX_POLL_SIZE:}
-                interval.ms: ${KAFKA_CONFIG_MAX_POLL_INTERVAL_TIMEOUT_MS:300000}
-            socket.connection.setup.timeout:
-              max.ms: ${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}
-              ms: ${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}
-            connections.max.idle.ms: ${KAFKA_CONSUMER_CONFIG_CONNECTIONS_MAX_IDLE_MS:300000}
+        bindings:
+          trxProcessor-in-0:
+            consumer:
+              startOffset: ${KAFKA_RTD_START_OFFSET:${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}}
+              autoCommitOffset: ${KAFKA_RTD_AUTO_COMMIT:${KAFKA_CONSUMER_CONFIG_AUTO_COMMIT:true}}
+              enableDlq: ${KAFKA_RTD_ENABLE_DLQ:${KAFKA_CONSUMER_CONFIG_ENABLE_DLQ:false}}
+              dlqName: ${KAFKA_RTD_DLQ_NAME:${KAFKA_CONSUMER_CONFIG_DLQ_NAME:errorTopic}}
+              standardHeaders: ${KAFKA_RTD_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
+              configuration:
+                max.poll:
+                  records: ${KAFKA_RTD_MAX_POLL_SIZE:${KAFKA_CONSUMER_CONFIG_MAX_POLL_SIZE:500}}
+                  interval.ms: ${KAFKA_RTD_INTERVAL_TIMEOUT_MS:${KAFKA_CONFIG_MAX_POLL_INTERVAL_TIMEOUT_MS:300000}}
+                connections.max.idle.ms: ${KAFKA_RTD_CONNECTIONS_MAX_IDLE_MS:${KAFKA_CONSUMER_CONFIG_CONNECTIONS_MAX_IDLE_MS:300000}}
+                socket.connection.setup.timeout:
+                  max.ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
+                  ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
             # TODO producerProperties to handle "linter" (buffering) and buffer size
   data:
     mongodb:
