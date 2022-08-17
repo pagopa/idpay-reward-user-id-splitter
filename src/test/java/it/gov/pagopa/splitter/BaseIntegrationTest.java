@@ -64,6 +64,10 @@ import static org.awaitility.Awaitility.await;
         controlledShutdown = true)
 @TestPropertySource(
         properties = {
+                //region common feature disabled
+                "logging.level.it.gov.pagopa.splitter.service.ErrorNotifierServiceImpl=WARN",
+                //endregion
+
                 //region kafka brokers
                 "logging.level.org.apache.zookeeper=WARN",
                 "logging.level.org.apache.kafka=WARN",
@@ -169,7 +173,6 @@ public abstract class BaseIntegrationTest {
                 i++;
             }
         }
-
     }
 
     protected void consumeFromBeginning(Consumer<String, String> consumer) {
