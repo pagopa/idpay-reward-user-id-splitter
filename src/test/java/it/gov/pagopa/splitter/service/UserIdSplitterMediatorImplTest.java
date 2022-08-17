@@ -53,6 +53,8 @@ class UserIdSplitterMediatorImplTest {
         Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
 
         // Then
+        Mockito.verifyNoInteractions(errorNotifierServiceMock);
+
         Assertions.assertEquals(2L, result.count().block());
         Mockito.verify(retrieveUserIdService, Mockito.times(3)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.times(2)).apply(Mockito.any(TransactionEnrichedDTO.class));
@@ -88,6 +90,8 @@ class UserIdSplitterMediatorImplTest {
         log.info(result.toString());
 
         // Then
+        Mockito.verifyNoInteractions(errorNotifierServiceMock);
+
         Assertions.assertEquals(0L, result.count().block());
         Mockito.verify(retrieveUserIdService, Mockito.times(2)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.never()).apply(Mockito.any(TransactionEnrichedDTO.class));
