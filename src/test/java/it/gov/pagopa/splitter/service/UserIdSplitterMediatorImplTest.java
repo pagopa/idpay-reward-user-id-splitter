@@ -7,6 +7,7 @@ import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.messaging.Message;
@@ -14,8 +15,17 @@ import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.ZoneId;
+import java.util.List;
+import java.util.TimeZone;
+
 @Slf4j
 class UserIdSplitterMediatorImplTest {
+
+    @BeforeAll
+    public static void setDefaultTimezone() {
+        TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("Europe/Rome")));
+    }
 
     @Test
     void testExecute() {
@@ -50,12 +60,12 @@ class UserIdSplitterMediatorImplTest {
         Mockito.when(messageKeyedPreparation.apply(transactionEnrichedDTO2)).thenReturn(message2);
 
         // When
-        Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
+        List<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux).collectList().block();
 
         // Then
         Mockito.verifyNoInteractions(errorNotifierServiceMock);
 
-        Assertions.assertEquals(2L, result.count().block());
+        Assertions.assertEquals(2, result.size());
         Mockito.verify(retrieveUserIdService, Mockito.times(3)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.times(2)).apply(Mockito.any(TransactionEnrichedDTO.class));
 
@@ -86,17 +96,14 @@ class UserIdSplitterMediatorImplTest {
 
 
         // When
-        Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
-        log.info(result.toString());
+        List<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux).collectList().block();
 
         // Then
         Mockito.verifyNoInteractions(errorNotifierServiceMock);
 
-        Assertions.assertEquals(0L, result.count().block());
+        Assertions.assertEquals(0, result.size());
         Mockito.verify(retrieveUserIdService, Mockito.times(2)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.never()).apply(Mockito.any(TransactionEnrichedDTO.class));
-
-
 
     }
 }
