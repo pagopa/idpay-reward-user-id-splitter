@@ -1,8 +1,12 @@
 package it.gov.pagopa.splitter.test.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.splitter.config.JsonConfig;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.util.ReflectionUtils;
 
@@ -13,6 +17,9 @@ import java.util.Set;
 public class TestUtils {
     private TestUtils() {
     }
+
+    /** applications's objectMapper */
+    public static ObjectMapper objectMapper = new JsonConfig().objectMapper();
 
     /**
      * It will assert not null on all o's fields
@@ -46,8 +53,18 @@ public class TestUtils {
         };
     }
 
+    /** To serialize an object as a JSON handling Exception */
+    public static String jsonSerializer(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-
-
+    /** To read {@link org.apache.kafka.common.header.Header} value */
+    public static String getHeaderValue(ConsumerRecord<String, String> errorMessage, String errorMsgHeaderSrcServer) {
+        return new String(errorMessage.headers().lastHeader(errorMsgHeaderSrcServer).value());
+    }
 
 }
