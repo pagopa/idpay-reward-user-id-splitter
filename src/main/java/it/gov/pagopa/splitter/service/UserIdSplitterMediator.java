@@ -13,5 +13,5 @@ import reactor.core.publisher.Flux;
  * </ol>
  * */
 public interface UserIdSplitterMediator {
-    Flux<Message<TransactionEnrichedDTO>> execute(Flux<TransactionDTO> transactionDTOFlux);
+    Flux<Message<TransactionEnrichedDTO>> execute(Flux<Message<String>> transactionDTOFlux);
 }

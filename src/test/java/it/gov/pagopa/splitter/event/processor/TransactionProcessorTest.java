@@ -1,21 +1,24 @@
 package it.gov.pagopa.splitter.event.processor;
 
 import it.gov.pagopa.splitter.BaseIntegrationTest;
+import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.util.Pair;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 
@@ -34,24 +37,30 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
         setInitiativeHpanForIncomingTransactions();
 
-        //region send a TransactionsDTO
-        long timePublishTransactionsStart=System.currentTimeMillis();
-        IntStream.range(0, transactionInputInvalidHpanNumber)
-                .mapToObj(i -> TransactionDTOFaker.mockInstanceBuilder(i+hpanInitiativeNumber)
-                        .mcc(i%2==0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
+        final List<TransactionDTO> validTrxs = IntStream.range(0, transactionInputInvalidHpanNumber)
+                .mapToObj(i -> TransactionDTOFaker.mockInstanceBuilder(i + hpanInitiativeNumber)
+                        .mcc(i % 2 == 0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
                         .build())
-                .forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
+                .collect(Collectors.toList());
 
-        IntStream.range(0, transactionInputNumber)
-                .mapToObj(n->TransactionDTOFaker.mockInstanceBuilder(n)
-                        .hpan("HPAN%s".formatted(n%hpanInitiativeNumber))
-                        .mcc(n%2==0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())):mccValid)
+        final List<String> errorUseCasePayloads = errorUseCases.stream().map(u -> u.getFirst().get()).collect(Collectors.toList());
+
+        final List<TransactionDTO> hpanInvalidTrxs = IntStream.range(0, transactionInputNumber)
+                .mapToObj(n -> TransactionDTOFaker.mockInstanceBuilder(n)
+                        .hpan("HPAN%s".formatted(n % hpanInitiativeNumber))
+                        .mcc(n % 2 == 0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
                         .build())
-                .forEach( t -> publishIntoEmbeddedKafka(topicTransactionInput,null, null,t));
+                .collect(Collectors.toList());
+
+        long timePublishTransactionsStart=System.currentTimeMillis();
+        //region send a TransactionsDTO
+        validTrxs.forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
+        errorUseCasePayloads.forEach(t ->publishIntoEmbeddedKafka(topicTransactionInput,null,null, t));
+        hpanInvalidTrxs.forEach( t -> publishIntoEmbeddedKafka(topicTransactionInput,null, null,t));
         //endregion
 
         long timeReadValidTransactionStart=System.currentTimeMillis();
-        List<ConsumerRecord<String, String>> consumerRecords = checkTopicTransactionOutput(transactionInputNumber/2, topicKeyedTransactionOutput);
+        List<ConsumerRecord<String, String>> consumerRecords = consumeMessages(topicKeyedTransactionOutput, transactionInputNumber/2, 30000);
         long timeReadValidTransactionEnd=System.currentTimeMillis();
 
         List<ConsumerRecord<String, String>> transactionsPartition0 = consumerRecords.stream().filter(r->r.partition() == 0).toList();
@@ -62,13 +71,15 @@ class TransactionProcessorTest extends BaseIntegrationTest {
         Assertions.assertEquals(transactionInputNumber/2, transactionsPartition0.size()+transactionsPartition1.size());
 
         long timeReadTransactionRejectedEStart=System.currentTimeMillis();
-        List<ConsumerRecord<String, String>> checkTopicTransactionRejectionResult = checkTopicTransactionOutput(transactionInputInvalidHpanNumber/2, topicTransactionRejectedOutput);
+        List<ConsumerRecord<String, String>> checkTopicTransactionRejectionResult = consumeMessages(topicTransactionRejectedOutput, transactionInputInvalidHpanNumber/2, 30000);
         long timeReadTransactionRejectedEnd=System.currentTimeMillis();
 
         Assertions.assertEquals(transactionInputInvalidHpanNumber/2,checkTopicTransactionRejectionResult.size());
         Assertions.assertNotEquals(userIdsInPartition0,userIdsInPartition1);
 
         long timeEnd=System.currentTimeMillis();
+
+        checkErrorsPublished(2, 3000, errorUseCases);
 
         System.out.printf("""
             ************************
@@ -86,7 +97,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
             Test Completed in %d millis
             ************************
             """,
-                transactionInputNumber+transactionInputInvalidHpanNumber,
+                transactionInputNumber+transactionInputInvalidHpanNumber+errorUseCases.size(),
                 (transactionInputNumber/2)+(transactionInputInvalidHpanNumber/2),
                 transactionInputNumber/2,
                 transactionsPartition0.size(), userIdsInPartition0,
@@ -96,32 +107,6 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 timeReadTransactionRejectedEnd-timeReadTransactionRejectedEStart,
                 timeEnd-timePublishTransactionsStart
         );
-    }
-
-    private List<ConsumerRecord<String, String>> checkTopicTransactionOutput(int expectedTransactionNumber,String topicName) {
-        long maxWaitingMs=30000;
-
-        List<ConsumerRecord<String, String>> consumerRecords = new ArrayList<>(expectedTransactionNumber);
-        int counter = 0;
-        try(Consumer<String, String> consumer = getEmbeddedKafkaConsumer(topicName,"group-id-%s".formatted(topicName))) {
-
-            long timeConsumerResponseStart = System.currentTimeMillis();
-
-
-            while (counter < expectedTransactionNumber) {
-                if (System.currentTimeMillis() - timeConsumerResponseStart > maxWaitingMs) {
-                    Assertions.fail("timeout of %d ms expired".formatted(maxWaitingMs));
-                }
-
-                ConsumerRecords<String, String> published = consumer.poll(Duration.ofMillis(7000));
-                for (ConsumerRecord<String, String> record : published) {
-                    consumerRecords.add(record);
-                    counter++;
-                }
-            }
-        }
-        Assertions.assertEquals(expectedTransactionNumber,counter);
-        return consumerRecords;
     }
 
     private void setInitiativeHpanForIncomingTransactions() {
@@ -135,4 +120,31 @@ class TransactionProcessorTest extends BaseIntegrationTest {
         waitFor(()->(countSaved[0]=hpanInitiativesRepository.count().block()) >= hpanInitiativeNumber, ()->"Expected %d saved rules, read %d".formatted(hpanInitiativeNumber, countSaved[0]), 15, 1000);
 
     }
+
+    //region not valid useCases
+    // all use cases configured must have a unique id recognized by the regexp getErrorUseCaseIdPatternMatch
+    protected Pattern getErrorUseCaseIdPatternMatch() {
+        return Pattern.compile("\"correlationId\":\"CORRELATIONID([0-9]+)\"");
+    }
+
+    private final List<Pair<Supplier<String>, Consumer<ConsumerRecord<String, String>>>> errorUseCases = new ArrayList<>();
+    {
+        String useCaseJsonNotExpected = "{\"correlationId\":\"CORRELATIONID0\",unexpectedStructure:0}";
+        errorUseCases.add(Pair.of(
+                () -> useCaseJsonNotExpected,
+                errorMessage -> checkErrorMessageHeaders(errorMessage, "Unexpected JSON", useCaseJsonNotExpected)
+        ));
+
+        String jsonNotValid = "{\"correlationId\":\"CORRELATIONID1\",invalidJson";
+        errorUseCases.add(Pair.of(
+                () -> jsonNotValid,
+                errorMessage -> checkErrorMessageHeaders(errorMessage, "Unexpected JSON", jsonNotValid)
+        ));
+
+    }
+
+    private void checkErrorMessageHeaders(ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload) {
+        checkErrorMessageHeaders(topicTransactionInput, errorMessage, errorDescription, expectedPayload);
+    }
+    //endregion
 }

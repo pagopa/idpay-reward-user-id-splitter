@@ -1,6 +1,5 @@
 package it.gov.pagopa.splitter.event.processor;
 
-import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.service.UserIdSplitterMediator;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +17,7 @@ public class TransactionProcessor {
      * Read from the topic ${KAFKA_RTD_TOPIC} and publish to topic ${KAFKA_TRANSACTION_USER_ID_SPLITTER_TOPIC}
      * */
     @Bean
-    public Function<Flux<TransactionDTO>,Flux<Message<TransactionEnrichedDTO>>> trxProcessor(UserIdSplitterMediator userIdSplitterMediator){
+    public Function<Flux<Message<String>>,Flux<Message<TransactionEnrichedDTO>>> trxProcessor(UserIdSplitterMediator userIdSplitterMediator){
         return userIdSplitterMediator::execute;
-        //TODO - implement error handling
     }
 }

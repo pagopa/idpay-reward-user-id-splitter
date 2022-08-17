@@ -4,8 +4,10 @@ import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedMapper;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
+import it.gov.pagopa.splitter.test.utils.TestUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.messaging.Message;
@@ -13,8 +15,17 @@ import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.ZoneId;
+import java.util.List;
+import java.util.TimeZone;
+
 @Slf4j
 class UserIdSplitterMediatorImplTest {
+
+    @BeforeAll
+    public static void setDefaultTimezone() {
+        TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("Europe/Rome")));
+    }
 
     @Test
     void testExecute() {
@@ -22,13 +33,16 @@ class UserIdSplitterMediatorImplTest {
         RetrieveUserIdService retrieveUserIdService= Mockito.mock(RetrieveUserIdServiceImpl.class);
         MessageKeyedPreparation messageKeyedPreparation =Mockito.mock(MessageKeyedPreparationImpl.class);
         TransactionFilterService transactionFilterService = Mockito.mock(TransactionFilterServiceImpl.class);
+        ErrorNotifierService errorNotifierServiceMock = Mockito.mock(ErrorNotifierService.class);
 
-        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation, transactionFilterService);
+        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation, transactionFilterService, errorNotifierServiceMock, TestUtils.objectMapper);
 
         TransactionDTO transactionDTO1 = TransactionDTOFaker.mockInstance(1);
         TransactionDTO transactionDTO2 = TransactionDTOFaker.mockInstance(2);
         TransactionDTO transactionDTO3 = TransactionDTOFaker.mockInstance(3);
-        Flux<TransactionDTO> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2,transactionDTO3);
+        Flux<Message<String>> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2,transactionDTO3)
+                .map(TestUtils::jsonSerializer)
+                .map(MessageBuilder::withPayload).map(MessageBuilder::build);
 
         Mockito.when(transactionFilterService.filter(transactionDTO1)).thenReturn(true);
         Mockito.when(transactionFilterService.filter(transactionDTO2)).thenReturn(true);
@@ -45,12 +59,13 @@ class UserIdSplitterMediatorImplTest {
         Mockito.when(messageKeyedPreparation.apply(transactionEnrichedDTO1)).thenReturn(message1);
         Mockito.when(messageKeyedPreparation.apply(transactionEnrichedDTO2)).thenReturn(message2);
 
-
         // When
-        Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
+        List<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux).collectList().block();
 
         // Then
-        Assertions.assertEquals(2L, result.count().block());
+        Mockito.verifyNoInteractions(errorNotifierServiceMock);
+
+        Assertions.assertEquals(2, result.size());
         Mockito.verify(retrieveUserIdService, Mockito.times(3)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.times(2)).apply(Mockito.any(TransactionEnrichedDTO.class));
 
@@ -63,12 +78,15 @@ class UserIdSplitterMediatorImplTest {
         RetrieveUserIdService retrieveUserIdService= Mockito.mock(RetrieveUserIdServiceImpl.class);
         MessageKeyedPreparation messageKeyedPreparation = Mockito.mock(MessageKeyedPreparationImpl.class);
         TransactionFilterService transactionFilterService = Mockito.mock(TransactionFilterServiceImpl.class);
+        ErrorNotifierService errorNotifierServiceMock = Mockito.mock(ErrorNotifierService.class);
 
-        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation, transactionFilterService);
+        UserIdSplitterMediator mediator = new UserIdSplitterMediatorImpl(retrieveUserIdService, messageKeyedPreparation, transactionFilterService, errorNotifierServiceMock, TestUtils.objectMapper);
 
         TransactionDTO transactionDTO1 = TransactionDTOFaker.mockInstance(1);
         TransactionDTO transactionDTO2 = TransactionDTOFaker.mockInstance(2);
-        Flux<TransactionDTO> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2);
+        Flux<Message<String>> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2)
+                .map(TestUtils::jsonSerializer)
+                .map(MessageBuilder::withPayload).map(MessageBuilder::build);
 
         Mockito.when(transactionFilterService.filter(transactionDTO1)).thenReturn(true);
         Mockito.when(transactionFilterService.filter(transactionDTO2)).thenReturn(true);
@@ -78,15 +96,14 @@ class UserIdSplitterMediatorImplTest {
 
 
         // When
-        Flux<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux);
-        log.info(result.toString());
+        List<Message<TransactionEnrichedDTO>> result = mediator.execute(transactionDTOFlux).collectList().block();
 
         // Then
-        Assertions.assertEquals(0L, result.count().block());
+        Mockito.verifyNoInteractions(errorNotifierServiceMock);
+
+        Assertions.assertEquals(0, result.size());
         Mockito.verify(retrieveUserIdService, Mockito.times(2)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(messageKeyedPreparation, Mockito.never()).apply(Mockito.any(TransactionEnrichedDTO.class));
-
-
 
     }
 }

@@ -7,11 +7,15 @@ import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.process.runtime.Executable;
 import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
+import it.gov.pagopa.splitter.service.ErrorNotifierServiceImpl;
+import it.gov.pagopa.splitter.test.utils.TestUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.data.mongo.AutoConfigureDataMongo;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.util.Pair;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
@@ -34,11 +39,18 @@ import java.lang.reflect.Field;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.awaitility.Awaitility.await;
 
@@ -47,6 +59,7 @@ import static org.awaitility.Awaitility.await;
         "${spring.cloud.stream.bindings.trxProcessor-in-0.destination}",
         "${spring.cloud.stream.bindings.trxProcessor-out-0.destination}",
         "${spring.cloud.stream.bindings.trxRejectedProducer-out-0.destination}",
+        "${spring.cloud.stream.bindings.errors-out-0.destination}",
 },
         controlledShutdown = true)
 @TestPropertySource(
@@ -62,6 +75,7 @@ import static org.awaitility.Awaitility.await;
                 "spring.cloud.stream.binders.kafka-rtd.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
                 "spring.cloud.stream.binders.kafka-idpay.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
                 "spring.cloud.stream.binders.kafka-idpay-transaction.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
+                "spring.cloud.stream.binders.kafka-errors.environment.spring.cloud.stream.kafka.binder.brokers=${spring.embedded.kafka.brokers}",
                 //endregion
 
                 //region mongodb
@@ -96,9 +110,10 @@ public abstract class BaseIntegrationTest {
     protected String topicTransactionInput;
     @Value("${spring.cloud.stream.bindings.trxProcessor-out-0.destination}")
     protected String topicKeyedTransactionOutput;
-
     @Value("${spring.cloud.stream.bindings.trxRejectedProducer-out-0.destination}")
     protected String topicTransactionRejectedOutput;
+    @Value("${spring.cloud.stream.bindings.errors-out-0.destination}")
+    protected String topicErrors;
 
     @BeforeAll
     public static void unregisterPreviouslyKafkaServers() throws MalformedObjectNameException, MBeanRegistrationException, InstanceNotFoundException {
@@ -161,6 +176,21 @@ public abstract class BaseIntegrationTest {
         consumer.seekToBeginning(consumer.assignment());
     }
 
+    protected List<ConsumerRecord<String, String>> consumeMessages(String topic, int expectedNumber, long maxWaitingMs) {
+        long startTime = System.currentTimeMillis();
+        try (Consumer<String, String> consumer = getEmbeddedKafkaConsumer(topic, "idpay-group")) {
+
+            List<ConsumerRecord<String, String>> payloadConsumed = new ArrayList<>(expectedNumber);
+            while (payloadConsumed.size() < expectedNumber) {
+                if (System.currentTimeMillis() - startTime > maxWaitingMs) {
+                    Assertions.fail("timeout of %d ms expired. Read %d messages of %d".formatted(maxWaitingMs, payloadConsumed.size(), expectedNumber));
+                }
+                consumer.poll(Duration.ofMillis(7000)).iterator().forEachRemaining(payloadConsumed::add);
+            }
+            return payloadConsumed;
+        }
+    }
+
     protected void publishIntoEmbeddedKafka(String topic, Iterable<Header> headers, String key, Object payload) {
         try {
             publishIntoEmbeddedKafka(topic, headers, key, objectMapper.writeValueAsString(payload));
@@ -170,6 +200,15 @@ public abstract class BaseIntegrationTest {
     }
 
     protected void publishIntoEmbeddedKafka(String topic, Iterable<Header> headers, String key, String payload) {
+        final RecordHeader retryHeader = new RecordHeader("RETRY", "1".getBytes());
+        if (headers == null) {
+            headers = new RecordHeaders(new RecordHeader[]{retryHeader});
+        } else {
+            headers = Stream.concat(
+                            StreamSupport.stream(headers.spliterator(), false),
+                            Stream.of(retryHeader))
+                    .collect(Collectors.toList());
+        }
         ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, key == null ? null : key.getBytes(StandardCharsets.UTF_8), payload.getBytes(StandardCharsets.UTF_8), headers);
         template.send(record);
     }
@@ -185,4 +224,30 @@ public abstract class BaseIntegrationTest {
         }
     }
 
+    protected final Pattern errorUseCaseIdPatternMatch = getErrorUseCaseIdPatternMatch();
+
+    protected Pattern getErrorUseCaseIdPatternMatch() {
+        return Pattern.compile("\"initiativeId\":\"id_([0-9]+)_?[^\"]*\"");
+    }
+
+    protected void checkErrorsPublished(int notValidRules, long maxWaitingMs, List<Pair<Supplier<String>, java.util.function.Consumer<ConsumerRecord<String, String>>>> errorUseCases) {
+        final List<ConsumerRecord<String, String>> errors = consumeMessages(topicErrors, notValidRules, maxWaitingMs);
+        for (final ConsumerRecord<String, String> record : errors) {
+            final Matcher matcher = errorUseCaseIdPatternMatch.matcher(record.value());
+            int useCaseId = matcher.find() ? Integer.parseInt(matcher.group(1)) : -1;
+            if (useCaseId == -1) {
+                throw new IllegalStateException("UseCaseId not recognized! " + record.value());
+            }
+            errorUseCases.get(useCaseId).getSecond().accept(record);
+        }
+    }
+
+    protected void checkErrorMessageHeaders(String srcTopic, ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload) {
+        Assertions.assertEquals(bootstrapServers, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_SRC_SERVER));
+        Assertions.assertEquals(srcTopic, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_SRC_TOPIC));
+        Assertions.assertNotNull(errorMessage.headers().lastHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_STACKTRACE));
+        Assertions.assertEquals(errorDescription, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_DESCRIPTION));
+        Assertions.assertEquals("1", TestUtils.getHeaderValue(errorMessage, "RETRY")); // to test if headers are correctly propagated
+        Assertions.assertEquals(errorMessage.value(), expectedPayload);
+    }
 }
