@@ -1,6 +1,7 @@
 package it.gov.pagopa.splitter.event.processor;
 
 import it.gov.pagopa.splitter.BaseIntegrationTest;
+import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
@@ -17,6 +18,7 @@ import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 
@@ -35,24 +37,26 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
         setInitiativeHpanForIncomingTransactions();
 
-        //region send a TransactionsDTO
+        final List<TransactionDTO> validTrxs = IntStream.range(0, transactionInputInvalidHpanNumber)
+                .mapToObj(i -> TransactionDTOFaker.mockInstanceBuilder(i + hpanInitiativeNumber)
+                        .mcc(i % 2 == 0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
+                        .build())
+                .collect(Collectors.toList());
+
+        final List<String> errorUseCasePayloads = errorUseCases.stream().map(u -> u.getFirst().get()).collect(Collectors.toList());
+
+        final List<TransactionDTO> hpanInvalidTrxs = IntStream.range(0, transactionInputNumber)
+                .mapToObj(n -> TransactionDTOFaker.mockInstanceBuilder(n)
+                        .hpan("HPAN%s".formatted(n % hpanInitiativeNumber))
+                        .mcc(n % 2 == 0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
+                        .build())
+                .collect(Collectors.toList());
+
         long timePublishTransactionsStart=System.currentTimeMillis();
-        IntStream.range(0, transactionInputInvalidHpanNumber)
-                .mapToObj(i -> TransactionDTOFaker.mockInstanceBuilder(i+hpanInitiativeNumber)
-                        .mcc(i%2==0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
-                        .build())
-                .forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
-
-        errorUseCases.forEach(u ->
-                publishIntoEmbeddedKafka(topicTransactionInput,null,null, u.getFirst().get())
-        );
-
-        IntStream.range(0, transactionInputNumber)
-                .mapToObj(n->TransactionDTOFaker.mockInstanceBuilder(n)
-                        .hpan("HPAN%s".formatted(n%hpanInitiativeNumber))
-                        .mcc(n%2==0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())):mccValid)
-                        .build())
-                .forEach( t -> publishIntoEmbeddedKafka(topicTransactionInput,null, null,t));
+        //region send a TransactionsDTO
+        validTrxs.forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
+        errorUseCasePayloads.forEach(t ->publishIntoEmbeddedKafka(topicTransactionInput,null,null, t));
+        hpanInvalidTrxs.forEach( t -> publishIntoEmbeddedKafka(topicTransactionInput,null, null,t));
         //endregion
 
         long timeReadValidTransactionStart=System.currentTimeMillis();
