@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.utils.Utils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
+@Slf4j
 public class UserIdSplitterMediatorImpl implements UserIdSplitterMediator {
     private final RetrieveUserIdService retrieveUserIdService;
     private final MessageKeyedPreparation messageKeyedPreparation;
@@ -34,6 +36,7 @@ public class UserIdSplitterMediatorImpl implements UserIdSplitterMediator {
     }
 
     public Mono<Message<TransactionEnrichedDTO>> execute(Message<String> message) {
+        long startTime = System.currentTimeMillis();
         return Mono.just(message)
                 .mapNotNull(this::deserializeMessage)
 
@@ -44,7 +47,7 @@ public class UserIdSplitterMediatorImpl implements UserIdSplitterMediator {
                 .onErrorResume(e -> {
                     errorNotifierService.notifyTransactionEvaluation(message, "An error occurred evaluating transaction", true, e);
                     return Mono.empty();
-                });
+                }).doFinally(x -> log.info("[PERFORMANCE_LOG] - Time between before and after evaluate message %d ms with payload: %s".formatted(System.currentTimeMillis()-startTime,message.getPayload())));
     }
 
     private TransactionDTO deserializeMessage(Message<String> message) {
