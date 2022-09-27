@@ -21,20 +21,37 @@ public class ErrorNotifierServiceImpl implements ErrorNotifierService {
 
     private final StreamBridge streamBridge;
 
+    private final String trxEnrichedMessagingServiceType;
+    private final String trxEnrichedServer;
+    private final String trxEnrichedTopic;
+
     private final String trxMessagingServiceType;
     private final String trxServer;
     private final String trxTopic;
 
     public ErrorNotifierServiceImpl(StreamBridge streamBridge,
 
+                                    @Value("${spring.cloud.stream.binders.kafka-idpay.type}") String trxEnrichedMessagingServiceType,
+                                    @Value("${spring.cloud.stream.binders.kafka-idpay.environment.spring.cloud.stream.kafka.binder.brokers}") String trxEnrichedServer,
+                                    @Value("${spring.cloud.stream.bindings.trxProcessor-out-0.destination}") String trxEnrichedTopic,
+
                                     @Value("${spring.cloud.stream.binders.kafka-rtd.type}") String trxMessagingServiceType,
                                     @Value("${spring.cloud.stream.binders.kafka-rtd.environment.spring.cloud.stream.kafka.binder.brokers}") String trxServer,
                                     @Value("${spring.cloud.stream.bindings.trxProcessor-in-0.destination}") String trxTopic) {
         this.streamBridge = streamBridge;
 
+        this.trxEnrichedMessagingServiceType = trxEnrichedMessagingServiceType;
+        this.trxEnrichedServer = trxEnrichedServer;
+        this.trxEnrichedTopic = trxEnrichedTopic;
+
         this.trxMessagingServiceType = trxMessagingServiceType;
         this.trxServer = trxServer;
         this.trxTopic = trxTopic;
+    }
+
+    @Override
+    public void notifyEnrichedTransaction(Message<?> message, String description, boolean retryable, Throwable exception) {
+        notify(trxEnrichedMessagingServiceType, trxEnrichedServer, trxEnrichedTopic, message, description, retryable, exception);
     }
 
     @Override
