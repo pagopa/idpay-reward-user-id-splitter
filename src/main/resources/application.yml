@@ -22,6 +22,7 @@ spring:
           group: ${KAFKA_RTD_GROUP_ID:idpay-consumer-group}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-rtd
+          consumer.autoStartup: false
         trxProcessor-out-0:
           destination: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_TOPIC:idpay-transaction-user-id-splitter}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
@@ -74,9 +75,9 @@ spring:
           trxProcessor-in-0:
             consumer:
               startOffset: ${KAFKA_RTD_START_OFFSET:${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}}
-              autoCommitOffset: ${KAFKA_RTD_AUTO_COMMIT:${KAFKA_CONSUMER_CONFIG_AUTO_COMMIT:true}}
-              enableDlq: ${KAFKA_RTD_ENABLE_DLQ:${KAFKA_CONSUMER_CONFIG_ENABLE_DLQ:false}}
-              dlqName: ${KAFKA_RTD_DLQ_NAME:${KAFKA_CONSUMER_CONFIG_DLQ_NAME:errorTopic}}
+              autoCommitOffset: false
+              ackMode: MANUAL_IMMEDIATE
+              ackTime: ${KAFKA_RTD_ACK_MILLIS:10000}
               standardHeaders: ${KAFKA_RTD_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
               configuration:
                 max.poll:
@@ -87,6 +88,18 @@ spring:
                   max.ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
                   ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
             # TODO producerProperties to handle "linter" (buffering) and buffer size
+          trxProcessor-out-0:
+            producer:
+              configuration:
+                client.id: trxProcessor-userid-splitter
+          trxRejectedProducer-out-0:
+            producer:
+              configuration:
+                client.id: trxProcessor-transaction
+          errors-out-0:
+            producer:
+              configuration:
+                client.id: trxProcessor-errors
   data:
     mongodb:
       uri: ${MONGODB_URI}
