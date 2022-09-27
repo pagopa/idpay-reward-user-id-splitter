@@ -2,11 +2,8 @@ package it.gov.pagopa.splitter.event.processor;
 
 import it.gov.pagopa.splitter.service.UserIdSplitterMediator;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.stream.binder.Binding;
-import org.springframework.cloud.stream.binder.BindingCreatedEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
 import org.springframework.messaging.Message;
 import reactor.core.publisher.Flux;
 
@@ -32,12 +29,4 @@ public class TransactionProcessor{
         return userIdSplitterMediator::execute;
     }
 
-    @EventListener(BindingCreatedEvent.class)
-    public void onBindingCreatedEvent(BindingCreatedEvent event) {
-        if (event.getSource() instanceof Binding<?> binding && TRX_PROCESSOR_BINDING_NAME.equals(binding.getBindingName())) {
-            synchronized (this) {
-                binding.start();
-            }
-        }
-    }
 }

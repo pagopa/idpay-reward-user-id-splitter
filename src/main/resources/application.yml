@@ -22,7 +22,6 @@ spring:
           group: ${KAFKA_RTD_GROUP_ID:idpay-consumer-group}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-rtd
-          consumer.autoStartup: false
         trxProcessor-out-0:
           destination: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_TOPIC:idpay-transaction-user-id-splitter}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
