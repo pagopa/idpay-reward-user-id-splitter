@@ -12,10 +12,7 @@ import java.util.function.Consumer;
 @Configuration
 @Slf4j
 public class TransactionProcessor{
-    public static final String TRX_PROCESSOR_BINDING_NAME = "trxProcessor-in-0";
-
     private final UserIdSplitterMediator userIdSplitterMediator;
-
 
     public TransactionProcessor(UserIdSplitterMediator userIdSplitterMediator) {
         this.userIdSplitterMediator = userIdSplitterMediator;
