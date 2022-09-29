@@ -6,6 +6,7 @@ import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Service
@@ -51,7 +53,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
 
     @Override
     protected void subscribeAfterCommits(Flux<List<TransactionEnrichedDTO>> afterCommits2subscribe) {
-        afterCommits2subscribe.subscribe(p -> log.debug("[SPLITTER] Processed offsets committed successfully"));
+        afterCommits2subscribe.subscribe(p -> log.debug("[TRX_USERID_SPLITTER] Processed offsets committed successfully"));
     }
 
     @Override
@@ -61,12 +63,12 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
 
     @Override
     protected Consumer<Throwable> onDeserializationError(Message<String> message) {
-        return e -> errorNotifierService.notifyTransactionEvaluation(message, "[SPLITTER] Unexpected JSON", true, e);
+        return e -> errorNotifierService.notifyTransactionEvaluation(message, "[TRX_USERID_SPLITTER] Unexpected JSON", true, e);
     }
 
     @Override
     protected void notifyError(Message<String> message, Throwable e) {
-        errorNotifierService.notifyTransactionEvaluation(message, "[SPLITTER] An error occurred evaluating transaction", true, e);
+        errorNotifierService.notifyTransactionEvaluation(message, "[TRX_USERID_SPLITTER] An error occurred evaluating transaction", true, e);
     }
 
     @Override
@@ -79,15 +81,15 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
                 .doOnNext(r -> {
                     try{
                         if(!transactionNotifierService.notify(r)){
-                            throw new IllegalStateException("[SPLITTER] Something gone wrong while transaction notify");
+                            throw new IllegalStateException("[TRX_USERID_SPLITTER] Something gone wrong while transaction notify");
                         }
                     } catch (Exception e){
                         log.error("[UNEXPECTED_TRX_PROCESSOR_ERROR] Unexpected error occurred publishing transaction: {}", r);
-                        errorNotifierService.notifyEnrichedTransaction(new GenericMessage<>(r, message.getHeaders()), "[SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
+                        errorNotifierService.notifyEnrichedTransaction(new GenericMessage<>(r, Map.of(KafkaHeaders.MESSAGE_KEY, r.getUserId())), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
                     }
 
                 })
-                .doFinally(x -> log.info("[PERFORMANCE_LOG] - Time between before and after evaluate message %d ms with payload: %s".formatted(System.currentTimeMillis()-startTime,message.getPayload())));
+                .doOnEach(x -> log.info("[PERFORMANCE_LOG] [TRX_USERID_SPLITTER] - Time between before and after evaluate message %d ms with payload: %s".formatted(System.currentTimeMillis()-startTime,message.getPayload())));
 
     }
 }

@@ -24,8 +24,10 @@ public class RetrieveUserIdServiceImpl implements RetrieveUserIdService {
     @Override
     public Mono<TransactionEnrichedDTO> resolveUserId(TransactionDTO transactionDTO) {
         return hpanInitiativesRepository.findById(transactionDTO.getHpan())
+                .doOnNext(x->log.debug("[TRX_USERID_SPLITTER] hpan {} resoved into userId {}", transactionDTO.getHpan(), x.getUserId()))
                 .map(h -> transaction2EnrichedMapper.apply(transactionDTO, h.getUserId()))
                 .switchIfEmpty(Mono.defer(() -> {
+                    log.info("[TRX_USERID_SPLITTER] Cannot resolve hpan userid");
                     senderTransactionRejectedService.sendTransactionRejected(transactionDTO);
                     return Mono.empty();
                 }));
