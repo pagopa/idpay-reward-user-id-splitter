@@ -143,13 +143,13 @@ class TransactionProcessorTest extends BaseIntegrationTest {
         String useCaseJsonNotExpected = "{\"correlationId\":\"CORRELATIONID0\",unexpectedStructure:0}";
         errorUseCases.add(Pair.of(
                 () -> useCaseJsonNotExpected,
-                errorMessage -> checkErrorMessageHeaders(errorMessage, "[SPLITTER] Unexpected JSON", useCaseJsonNotExpected)
+                errorMessage -> checkErrorMessageHeaders(errorMessage, "[TRX_USERID_SPLITTER] Unexpected JSON", useCaseJsonNotExpected)
         ));
 
         String jsonNotValid = "{\"correlationId\":\"CORRELATIONID1\",invalidJson";
         errorUseCases.add(Pair.of(
                 () -> jsonNotValid,
-                errorMessage -> checkErrorMessageHeaders(errorMessage, "[SPLITTER] Unexpected JSON", jsonNotValid)
+                errorMessage -> checkErrorMessageHeaders(errorMessage, "[TRX_USERID_SPLITTER] Unexpected JSON", jsonNotValid)
         ));
 
     }

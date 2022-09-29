@@ -40,7 +40,8 @@ spring:
           environment:
             spring.cloud.stream.kafka.binder:
               brokers: ${KAFKA_RTD_BROKER:${KAFKA_BROKER:}}
-              configuration.sasl.jaas.config: ${KAFKA_RTD_SASL_JAAS_CONFIG:}
+              configuration:
+                sasl.jaas.config: ${KAFKA_RTD_SASL_JAAS_CONFIG:}
         kafka-idpay:
           type: kafka
           environment:
@@ -48,19 +49,23 @@ spring:
               brokers: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_BROKER:${KAFKA_BROKER:}}
               configuration:
                 sasl.jaas.config: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_SASL_JAAS_CONFIG:}
-                key.serializer: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_KEY_SERIALIZER:org.apache.kafka.common.serialization.StringSerializer}
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
         kafka-idpay-transaction:
           type: kafka
           environment:
             spring.cloud.stream.kafka.binder:
               brokers: ${KAFKA_TRANSACTION_BROKER:${KAFKA_BROKER:}}
-              configuration.sasl.jaas.config: ${KAFKA_TRANSACTION_SASL_JAAS_CONFIG:}
+              configuration:
+                sasl.jaas.config: ${KAFKA_TRANSACTION_SASL_JAAS_CONFIG:}
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
         kafka-errors:
           type: kafka
           environment:
             spring.cloud.stream.kafka.binder:
               brokers: ${KAFKA_ERRORS_BROKER:${KAFKA_BROKER:}}
-              configuration.sasl.jaas.config: ${KAFKA_ERRORS_SASL_JAAS_CONFIG:}
+              configuration:
+                sasl.jaas.config: ${KAFKA_ERRORS_SASL_JAAS_CONFIG:}
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
       kafka:
         binder:
           auto-create-topics: false
@@ -86,7 +91,6 @@ spring:
                 socket.connection.setup.timeout:
                   max.ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
                   ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
-            # TODO producerProperties to handle "linter" (buffering) and buffer size
           trxProcessor-out-0:
             producer:
               configuration:
