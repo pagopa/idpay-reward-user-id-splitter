@@ -72,8 +72,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
     }
 
     @Override
-    protected Mono<TransactionEnrichedDTO> execute(TransactionDTO payload, Message<String> message) {
-        long startTime = System.currentTimeMillis();
+    protected Mono<TransactionEnrichedDTO> execute(TransactionDTO payload, Message<String> message, Map<String, Object> ctx) {
         return Mono.just(payload)
                 .filter(this.transactionFilterService::filter)
                 .flatMap(this.retrieveUserIdService::resolveUserId)
@@ -88,8 +87,11 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
                         errorNotifierService.notifyEnrichedTransaction(new GenericMessage<>(r, Map.of(KafkaHeaders.MESSAGE_KEY, r.getUserId())), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
                     }
 
-                })
-                .doOnEach(x -> log.info("[PERFORMANCE_LOG] [TRX_USERID_SPLITTER] - Time between before and after evaluate message %d ms with payload: %s".formatted(System.currentTimeMillis()-startTime,message.getPayload())));
+                });
+    }
 
+    @Override
+    protected String getFlowName() {
+        return "TRX_USERID_SPLITTER";
     }
 }
