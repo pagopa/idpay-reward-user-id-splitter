@@ -3,10 +3,9 @@ package it.gov.pagopa.splitter.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
-import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedMapper;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
+import it.gov.pagopa.splitter.test.fakers.TransactionEnrichedDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,6 @@ import java.util.TimeZone;
 
 @ExtendWith(MockitoExtension.class)
 class UserIdSplitterMediatorImplTest {
-
     @Mock
     private RetrieveUserIdService retrieveUserIdService;
 
@@ -64,14 +62,17 @@ class UserIdSplitterMediatorImplTest {
         Mockito.when(transactionFilterService.filter(transactionDTO2)).thenReturn(true);
         Mockito.when(transactionFilterService.filter(transactionDTO3)).thenReturn(true);
 
-        TransactionEnrichedDTO transactionEnrichedDTO1 = new Transaction2EnrichedMapper().apply(transactionDTO1,"USERID1");
-        TransactionEnrichedDTO transactionEnrichedDTO2 = new Transaction2EnrichedMapper().apply(transactionDTO2,"USERID2");
-        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO1)).thenReturn(Mono.just(transactionEnrichedDTO1));
-        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO2)).thenReturn(Mono.just(transactionEnrichedDTO2));
+        TransactionEnrichedDTO trxEnrichedDTO1 = TransactionEnrichedDTOFaker.mockInstance(1);
+        trxEnrichedDTO1.setHpan(transactionDTO1.getHpan());
+        TransactionEnrichedDTO trxEnrichedDTO2 = TransactionEnrichedDTOFaker.mockInstance(2);
+        trxEnrichedDTO2.setHpan(transactionDTO2.getHpan());
+
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO1)).thenReturn(Mono.just(trxEnrichedDTO1));
+        Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO2)).thenReturn(Mono.just(trxEnrichedDTO2));
         Mockito.when(retrieveUserIdService.resolveUserId(transactionDTO3)).thenReturn(Mono.empty());
 
-        Mockito.when(transactionNotifierService.notify(transactionEnrichedDTO1)).thenReturn(true);
-        Mockito.when(transactionNotifierService.notify(transactionEnrichedDTO2)).thenReturn(false);
+        Mockito.when(transactionNotifierService.notify(trxEnrichedDTO1)).thenReturn(true);
+        Mockito.when(transactionNotifierService.notify(trxEnrichedDTO2)).thenReturn(false);
 
         // When
         userIdSplitterMediator.execute(transactionDTOFlux);
@@ -149,5 +150,4 @@ class UserIdSplitterMediatorImplTest {
         Mockito.verify(retrieveUserIdService, Mockito.times(1)).resolveUserId(Mockito.any(TransactionDTO.class));
         Mockito.verify(errorNotifierService, Mockito.times(1)).notifyTransactionEvaluation(Mockito.any(Message.class), Mockito.anyString(),Mockito.anyBoolean(), Mockito.any(RuntimeException.class));
     }
-
 }
