@@ -21,8 +21,10 @@ public final class HpanInitiativesFaker {
     public static HpanInitiatives mockInstance(Integer bias){
         HpanInitiatives out = new HpanInitiatives();
 
-        out.setHpan("HPAN%s".formatted(bias));
-        out.setUserId("%sUSERID%s_%s".formatted(bias,bias,bias));
+        out.setHpan("HPAN%d".formatted(bias));
+        out.setMaskedPan("MASKEDHPAN%d".formatted(bias));
+        out.setBrandLogo("BRANDLOGO%d".formatted(bias));
+        out.setUserId("%sUSERID%s_%d".formatted(bias,bias,bias));
 
         OnboardedInitiative onboardedInitiative = OnboardedInitiative.builder()
                 .initiativeId(String.format("INITIATIVE_%d",bias))
@@ -49,6 +51,8 @@ public final class HpanInitiativesFaker {
         FakeValuesService fakeValuesService = getFakeValuesService(bias);
 
         out.setHpan(fakeValuesService.bothify("?????"));
+        out.setMaskedPan(fakeValuesService.bothify("?????"));
+        out.setBrandLogo(fakeValuesService.bothify("?????"));
         out.setUserId(fakeValuesService.bothify("?????"));
 
 
@@ -62,6 +66,8 @@ public final class HpanInitiativesFaker {
         FakeValuesService fakeValuesService = getFakeValuesService(bias);
 
         out.setHpan(fakeValuesService.bothify("?????"));
+        out.setMaskedPan(fakeValuesService.bothify("?????"));
+        out.setBrandLogo(fakeValuesService.bothify("?????"));
         out.setUserId(fakeValuesService.bothify("?????"));
 
         OnboardedInitiative onboardedInitiative = OnboardedInitiative.builder()
