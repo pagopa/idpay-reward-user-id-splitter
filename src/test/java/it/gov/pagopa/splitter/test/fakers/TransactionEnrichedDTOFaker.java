@@ -1,14 +1,38 @@
 package it.gov.pagopa.splitter.test.fakers;
 
 import com.github.javafaker.service.FakeValuesService;
+import com.github.javafaker.service.RandomService;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Locale;
+import java.util.Random;
 
 public class TransactionEnrichedDTOFaker {
+
+    private static final Random randomGenerator = new Random();
+
+    private static Random getRandom(Integer bias) {
+        return bias == null ? randomGenerator : new Random(bias);
+    }
+
+    private static int getRandomPositiveNumber(Integer bias) {
+        return Math.abs(getRandom(bias).nextInt());
+    }
+
+    private static int getRandomPositiveNumber(Integer bias, int bound) {
+        return Math.abs(getRandom(bias).nextInt(bound));
+    }
+
+    private static final FakeValuesService fakeValuesServiceGlobal = new FakeValuesService(new Locale("it"), new RandomService(null));
+
+    private static FakeValuesService getFakeValuesService(Integer bias) {
+        return bias == null ? fakeValuesServiceGlobal : new FakeValuesService(new Locale("it"), new RandomService(getRandom(bias)));
+    }
+
     /** It will return an example of {@link TransactionEnrichedDTO}. Providing a bias, it will return a pseudo-casual object */
 
     public static TransactionEnrichedDTO mockInstance(Integer bias){
@@ -21,9 +45,9 @@ public class TransactionEnrichedDTOFaker {
     public static TransactionEnrichedDTO.TransactionEnrichedDTOBuilder<?, ?> mockInstanceBuilder(Integer bias){
         TransactionEnrichedDTO.TransactionEnrichedDTOBuilder<?, ?> out = TransactionEnrichedDTO.builder();
 
-        bias = ObjectUtils.firstNonNull(bias, TransactionDTOFaker.getRandomPositiveNumber(null));
+        bias = ObjectUtils.firstNonNull(bias, getRandomPositiveNumber(null));
 
-        FakeValuesService fakeValuesService = TransactionDTOFaker.getFakeValuesService(bias);
+        FakeValuesService fakeValuesService = getFakeValuesService(bias);
 
         out.idTrxAcquirer("idTrxAcquirer_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
         out.acquirerCode("acquirerCode_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
