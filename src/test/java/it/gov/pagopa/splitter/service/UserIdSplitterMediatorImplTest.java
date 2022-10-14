@@ -6,6 +6,7 @@ import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionEnrichedDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.TimeZone;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +47,12 @@ class UserIdSplitterMediatorImplTest {
     @BeforeEach
     void setUp() {
         userIdSplitterMediator = new UserIdSplitterMediatorImpl(retrieveUserIdService,transactionFilterService,transactionNotifierService, errorNotifierService, 10000,TestUtils.objectMapper);
+    }
+
+    @AfterEach
+    void checkErrorInvocations(){
+        Mockito.mockingDetails(errorNotifierService).getInvocations()
+                .forEach(i-> System.out.println("Called errorNotifier: " + Arrays.toString(i.getArguments())));
     }
 
     @Test
