@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
+import org.springframework.test.context.TestPropertySource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -30,6 +31,14 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 @Slf4j
+@TestPropertySource(properties = {
+        "logging.level.it.gov.pagopa.splitter.service.UserIdSplitterMediatorServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.filter=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.RetrieveUserIdServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.SenderTransactionRejectedServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.TransactionFilterServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.BaseKafkaConsumer=WARN",
+})
 class TransactionProcessorTest extends BaseIntegrationTest {
     @Value("${app.filter.mccExcluded}")
     List<String> mccExcluded;
