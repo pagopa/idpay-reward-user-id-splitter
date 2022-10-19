@@ -2,6 +2,8 @@ package it.gov.pagopa.splitter.event.processor;
 
 import it.gov.pagopa.splitter.BaseIntegrationTest;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
+import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
+import it.gov.pagopa.splitter.service.ErrorNotifierServiceImpl;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
@@ -9,11 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +29,19 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-
 @Slf4j
 class TransactionProcessorTest extends BaseIntegrationTest {
     @Value("${app.filter.mccExcluded}")
     List<String> mccExcluded;
     private final int hpanInitiativeNumber = 5;
+
+    @Autowired
+    private HpanInitiativesRepository hpanInitiativesRepository;
+
+    @AfterEach
+    void cleanData() {
+        hpanInitiativesRepository.deleteAll().block();
+    }
 
     @Test
     void trxProcessor() {
@@ -47,7 +60,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
         long timePublishTransactionsStart=System.currentTimeMillis();
         transactionEvents.forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
-
+        publishIntoEmbeddedKafka(topicTransactionInput, List.of(new RecordHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, "OTHERAPPNAME".getBytes(StandardCharsets.UTF_8))), null, "OTHERAPPMESSAGE");
 
         long timeReadValidTransactionStart=System.currentTimeMillis();
         List<ConsumerRecord<String, String>> consumerRecords = consumeMessages(topicKeyedTransactionOutput, transactionNotInititativeHpanNumber/2, 30000);
@@ -98,7 +111,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 timeEnd-timePublishTransactionsStart
         );
 
-        checkOffsets(transactionEvents.size(), transactionNotInititativeHpanNumber/2);
+        checkOffsets(transactionEvents.size()+1, transactionNotInititativeHpanNumber/2); // +1 due to other applicationName useCase
     }
 
     private List<String> getInvalidHpanTrxs(int transactionInputInvalidHpanNumber, String mccValid) {
@@ -151,11 +164,10 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 () -> jsonNotValid,
                 errorMessage -> checkErrorMessageHeaders(errorMessage, "[TRX_USERID_SPLITTER] Unexpected JSON", jsonNotValid)
         ));
-
     }
 
     private void checkErrorMessageHeaders(ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload) {
-        checkErrorMessageHeaders(topicTransactionInput, errorMessage, errorDescription, expectedPayload);
+        checkErrorMessageHeaders(topicTransactionInput, groupIdTrxProcessorConsumer, errorMessage, errorDescription, expectedPayload);
     }
     //endregion
 
