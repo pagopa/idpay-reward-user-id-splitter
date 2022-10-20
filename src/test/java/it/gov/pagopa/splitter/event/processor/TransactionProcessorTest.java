@@ -201,7 +201,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 },
                 errorMessage -> {
                     TransactionEnrichedDTO transactionEnrichedFailingReward = retrievePayloadTrxEnriched(transaction2EnrichedMapper, failingRewardPublishing);
-                    checkErrorMessageHeaders(topicKeyedTransactionOutput,"", errorMessage, "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", TestUtils.jsonSerializer(transactionEnrichedFailingReward),transactionEnrichedFailingReward.getUserId(),false);
+                    checkErrorMessageHeaders(topicKeyedTransactionOutput,"", errorMessage, "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", TestUtils.jsonSerializer(transactionEnrichedFailingReward),transactionEnrichedFailingReward.getUserId(),false, false);
                 })
         );
 
@@ -219,7 +219,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 },
                 errorMessage -> {
                     TransactionEnrichedDTO transactionEnrichedExceptionRewardPublish = retrievePayloadTrxEnriched(transaction2EnrichedMapper, exceptionWhenRewardPublish);
-                    checkErrorMessageHeaders(topicKeyedTransactionOutput, "", errorMessage, "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", TestUtils.jsonSerializer(transactionEnrichedExceptionRewardPublish),transactionEnrichedExceptionRewardPublish.getUserId(),false);
+                    checkErrorMessageHeaders(topicKeyedTransactionOutput, "", errorMessage, "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", TestUtils.jsonSerializer(transactionEnrichedExceptionRewardPublish),transactionEnrichedExceptionRewardPublish.getUserId(),false, false);
                 }
         ));
     }

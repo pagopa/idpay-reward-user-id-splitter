@@ -87,7 +87,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
                         }
                     } catch (Exception e){
                         log.error("[UNEXPECTED_TRX_PROCESSOR_ERROR] Unexpected error occurred publishing transaction: {}", r);
-                        errorNotifierService.notifyEnrichedTransaction(new GenericMessage<>(r, Map.of(KafkaHeaders.MESSAGE_KEY, r.getUserId())), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
+                        errorNotifierService.notifyEnrichedTransaction(TransactionNotifierServiceImpl.buildMessage(r), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
                     }
 
                 });

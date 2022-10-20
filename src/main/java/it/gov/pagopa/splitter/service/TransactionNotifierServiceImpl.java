@@ -3,6 +3,7 @@ package it.gov.pagopa.splitter.service;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,11 @@ public class TransactionNotifierServiceImpl implements TransactionNotifierServic
     @Override
     public boolean notify(TransactionEnrichedDTO transaction) {
         return streamBridge.send("trxProcessor-out-0",
-                MessageBuilder.withPayload(transaction)
-                        .setHeader(KafkaHeaders.MESSAGE_KEY,transaction.getUserId()).build());
+                buildMessage(transaction));
+    }
+
+    public static Message<TransactionEnrichedDTO> buildMessage(TransactionEnrichedDTO transaction){
+        return MessageBuilder.withPayload(transaction)
+                .setHeader(KafkaHeaders.MESSAGE_KEY,transaction.getUserId()).build();
     }
 }
