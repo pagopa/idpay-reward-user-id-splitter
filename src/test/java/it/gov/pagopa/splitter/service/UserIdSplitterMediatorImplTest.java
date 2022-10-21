@@ -7,7 +7,6 @@ import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionEnrichedDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,9 +19,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.time.ZoneId;
 import java.util.Arrays;
-import java.util.TimeZone;
 
 @ExtendWith(MockitoExtension.class)
 class UserIdSplitterMediatorImplTest {
@@ -39,11 +36,6 @@ class UserIdSplitterMediatorImplTest {
     private ErrorNotifierService errorNotifierServiceMock;
 
     private UserIdSplitterMediator userIdSplitterMediator;
-
-    @BeforeAll
-    public static void setDefaultTimezone() {
-        TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("Europe/Rome")));
-    }
 
     @BeforeEach
     void setUp() {
