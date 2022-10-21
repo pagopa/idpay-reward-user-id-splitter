@@ -28,15 +28,18 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
     private final Duration commitDelay;
     private final ObjectReader objectReader;
 
-    public UserIdSplitterMediatorImpl(RetrieveUserIdService retrieveUserIdService,
-                                      TransactionFilterService transactionFilterService,
-                                      TransactionNotifierService transactionNotifierService,
-                                      ErrorNotifierService errorNotifierService,
+    public UserIdSplitterMediatorImpl(
+            @Value("${spring.application.name}") String applicationName,
+            RetrieveUserIdService retrieveUserIdService,
+            TransactionFilterService transactionFilterService,
+            TransactionNotifierService transactionNotifierService,
+            ErrorNotifierService errorNotifierService,
 
-                                      @Value("${spring.cloud.stream.kafka.bindings.trxProcessor-in-0.consumer.ackTime}") long commitMillis,
+            @Value("${spring.cloud.stream.kafka.bindings.trxProcessor-in-0.consumer.ackTime}") long commitMillis,
 
 
-                                      ObjectMapper objectMapper) {
+            ObjectMapper objectMapper) {
+        super(applicationName);
         this.retrieveUserIdService = retrieveUserIdService;
         this.transactionFilterService = transactionFilterService;
         this.transactionNotifierService = transactionNotifierService;
@@ -84,7 +87,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
                         }
                     } catch (Exception e){
                         log.error("[UNEXPECTED_TRX_PROCESSOR_ERROR] Unexpected error occurred publishing transaction: {}", r);
-                        errorNotifierService.notifyEnrichedTransaction(new GenericMessage<>(r, Map.of(KafkaHeaders.MESSAGE_KEY, r.getUserId())), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
+                        errorNotifierService.notifyEnrichedTransaction(TransactionNotifierServiceImpl.buildMessage(r), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
                     }
 
                 });

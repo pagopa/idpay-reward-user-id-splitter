@@ -10,6 +10,7 @@ import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
 import it.gov.pagopa.splitter.service.ErrorNotifierServiceImpl;
 import it.gov.pagopa.splitter.service.StreamsHealthIndicator;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -47,10 +48,10 @@ import java.lang.reflect.Field;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -134,7 +135,7 @@ public abstract class BaseIntegrationTest {
 
     @BeforeAll
     public static void unregisterPreviouslyKafkaServers() throws MalformedObjectNameException, MBeanRegistrationException, InstanceNotFoundException {
-        TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("Europe/Rome")));
+        TimeZone.setDefault(TimeZone.getTimeZone(RewardUserIdSplitterConstants.ZONEID));
 
         unregisterMBean("kafka.*:*");
         unregisterMBean("org.springframework.*:*");
@@ -235,14 +236,33 @@ public abstract class BaseIntegrationTest {
         }
     }
 
+    private int totaleMessageSentCounter =0;
     protected void publishIntoEmbeddedKafka(String topic, Iterable<Header> headers, String key, String payload) {
-        final RecordHeader retryHeader = new RecordHeader("RETRY", "1".getBytes());
+        final RecordHeader retryHeader = new RecordHeader("RETRY", "1".getBytes(StandardCharsets.UTF_8));
+        final RecordHeader applicationNameHeader = new RecordHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, "idpay-reward-user-id-splitter".getBytes(StandardCharsets.UTF_8));
+
+        AtomicBoolean containAppNameHeader = new AtomicBoolean(false);
+        if(headers!= null){
+            headers.forEach(h -> {
+                if(h.key().equals(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME)){
+                    containAppNameHeader.set(true);
+                }
+            });
+        }
+
+        final RecordHeader[] additionalHeaders;
+        if(totaleMessageSentCounter++%2 == 0 || containAppNameHeader.get()){
+            additionalHeaders= new RecordHeader[]{retryHeader};
+        } else {
+            additionalHeaders= new RecordHeader[]{retryHeader, applicationNameHeader};
+        }
+
         if (headers == null) {
-            headers = new RecordHeaders(new RecordHeader[]{retryHeader});
+            headers = new RecordHeaders(additionalHeaders);
         } else {
             headers = Stream.concat(
                             StreamSupport.stream(headers.spliterator(), false),
-                            Stream.of(retryHeader))
+                            Arrays.stream(additionalHeaders))
                     .collect(Collectors.toList());
         }
         ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, key == null ? null : key.getBytes(StandardCharsets.UTF_8), payload.getBytes(StandardCharsets.UTF_8), headers);
@@ -327,13 +347,24 @@ public abstract class BaseIntegrationTest {
         }
     }
 
-    protected void checkErrorMessageHeaders(String srcTopic, ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload) {
+    protected void checkErrorMessageHeaders(String srcTopic,String group, ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload, String expectedKey) {
+        checkErrorMessageHeaders(srcTopic, group, errorMessage, errorDescription, expectedPayload, expectedKey, true, true);
+    }
+
+    protected void checkErrorMessageHeaders(String srcTopic,String group, ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload, String expectedKey, boolean expectRetryHeader, boolean expectedAppNameHeader) {
+        if(expectedAppNameHeader) {
+            Assertions.assertEquals("idpay-reward-user-id-splitter", TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME));
+        }
+        Assertions.assertEquals(group, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_GROUP));
         Assertions.assertEquals("kafka", TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_SRC_TYPE));
         Assertions.assertEquals(bootstrapServers, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_SRC_SERVER));
         Assertions.assertEquals(srcTopic, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_SRC_TOPIC));
         Assertions.assertNotNull(errorMessage.headers().lastHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_STACKTRACE));
         Assertions.assertEquals(errorDescription, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_DESCRIPTION));
-        Assertions.assertEquals("1", TestUtils.getHeaderValue(errorMessage, "RETRY")); // to test if headers are correctly propagated
+        if(expectRetryHeader){
+            Assertions.assertEquals("1", TestUtils.getHeaderValue(errorMessage, "RETRY")); // to test if headers are correctly propagated
+        }
         Assertions.assertEquals(errorMessage.value(), expectedPayload);
+        Assertions.assertEquals(expectedKey, errorMessage.key());
     }
 }

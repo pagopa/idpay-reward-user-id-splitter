@@ -6,6 +6,7 @@ import it.gov.pagopa.splitter.config.JsonConfig;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
+import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.util.ReflectionUtils;
@@ -13,9 +14,14 @@ import org.springframework.util.ReflectionUtils;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TimeZone;
 
 public class TestUtils {
     private TestUtils() {
+    }
+
+    static {
+        TimeZone.setDefault(TimeZone.getTimeZone(RewardUserIdSplitterConstants.ZONEID));
     }
 
     /** applications's objectMapper */

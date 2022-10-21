@@ -1,19 +1,33 @@
 package it.gov.pagopa.splitter.event.processor;
 
 import it.gov.pagopa.splitter.BaseIntegrationTest;
+import it.gov.pagopa.splitter.dto.TransactionDTO;
+import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
+import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedMapper;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
+import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
+import it.gov.pagopa.splitter.service.ErrorNotifierServiceImpl;
+import it.gov.pagopa.splitter.service.TransactionNotifierService;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.util.Pair;
+import org.springframework.test.context.TestPropertySource;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,34 +37,54 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-
 @Slf4j
+@TestPropertySource(properties = {
+        "logging.level.it.gov.pagopa.splitter.service.UserIdSplitterMediatorServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.filter=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.RetrieveUserIdServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.SenderTransactionRejectedServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.TransactionFilterServiceImpl=WARN",
+        "logging.level.it.gov.pagopa.splitter.service.BaseKafkaConsumer=WARN",
+})
 class TransactionProcessorTest extends BaseIntegrationTest {
     @Value("${app.filter.mccExcluded}")
     List<String> mccExcluded;
     private final int hpanInitiativeNumber = 5;
 
+    private final String mccValid= "2000";
+
+    @Autowired
+    private HpanInitiativesRepository hpanInitiativesRepository;
+    @Autowired
+    private Transaction2EnrichedMapper transaction2EnrichedMapper;
+
+    @SpyBean
+    private TransactionNotifierService transactionNotifierServiceSpy;
+
+    @AfterEach
+    void cleanData() {
+        hpanInitiativesRepository.deleteAll().block();
+    }
+
     @Test
     void trxProcessor() {
 
-        int transactionInititativeHpanNumber =100;
-        int transactionNotInititativeHpanNumber=50;
-
-        String mccValid= "2000";
+        int trxWhitoutInititativeHpanInDBNumber =50;
+        int trxWithInititativeHpanInDBNumber=100;
 
         setInitiativeHpanForIncomingTransactions();
 
         List<String> transactionEvents = new ArrayList<>();
-        transactionEvents.addAll(getValidHpanTrxs(transactionInititativeHpanNumber, mccValid));
+        transactionEvents.addAll(getTrxForHpanNotPresent(trxWhitoutInititativeHpanInDBNumber));
         transactionEvents.addAll(errorUseCases.stream().map(u -> u.getFirst().get()).toList());
-        transactionEvents.addAll(getInvalidHpanTrxs(transactionNotInititativeHpanNumber, mccValid));
+        transactionEvents.addAll(getTrxFordHpanPresent(trxWithInititativeHpanInDBNumber));
 
         long timePublishTransactionsStart=System.currentTimeMillis();
         transactionEvents.forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
-
+        publishIntoEmbeddedKafka(topicTransactionInput, List.of(new RecordHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, "OTHERAPPNAME".getBytes(StandardCharsets.UTF_8))), null, "OTHERAPPMESSAGE");
 
         long timeReadValidTransactionStart=System.currentTimeMillis();
-        List<ConsumerRecord<String, String>> consumerRecords = consumeMessages(topicKeyedTransactionOutput, transactionNotInititativeHpanNumber/2, 30000);
+        List<ConsumerRecord<String, String>> consumerRecords = consumeMessages(topicKeyedTransactionOutput, trxWithInititativeHpanInDBNumber/2, 30000);
         long timeReadValidTransactionEnd=System.currentTimeMillis();
 
         List<ConsumerRecord<String, String>> transactionsPartition0 = consumerRecords.stream().filter(r->r.partition() == 0).toList();
@@ -58,18 +92,18 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
         List<String> userIdsInPartition0 = transactionsPartition0.stream().map(ConsumerRecord::key).distinct().toList();
         List<String> userIdsInPartition1 = transactionsPartition1.stream().map(ConsumerRecord::key).distinct().toList();
-        Assertions.assertEquals(transactionNotInititativeHpanNumber/2, transactionsPartition0.size()+transactionsPartition1.size());
+        Assertions.assertEquals(trxWithInititativeHpanInDBNumber/2, transactionsPartition0.size()+transactionsPartition1.size());
 
         long timeReadTransactionRejectedEStart=System.currentTimeMillis();
-        List<ConsumerRecord<String, String>> checkTopicTransactionRejectionResult = consumeMessages(topicTransactionRejectedOutput, transactionInititativeHpanNumber/2, 30000);
+        List<ConsumerRecord<String, String>> checkTopicTransactionRejectionResult = consumeMessages(topicTransactionRejectedOutput, trxWhitoutInititativeHpanInDBNumber/2, 30000);
         long timeReadTransactionRejectedEnd=System.currentTimeMillis();
 
-        Assertions.assertEquals(transactionInititativeHpanNumber/2,checkTopicTransactionRejectionResult.size());
+        Assertions.assertEquals(trxWhitoutInititativeHpanInDBNumber/2,checkTopicTransactionRejectionResult.size());
         Assertions.assertNotEquals(userIdsInPartition0,userIdsInPartition1);
 
         long timeEnd=System.currentTimeMillis();
 
-        checkErrorsPublished(2, 3000, errorUseCases);
+        checkErrorsPublished(errorUseCases.size(), 3000, errorUseCases);
 
         System.out.printf("""
             ************************
@@ -87,22 +121,22 @@ class TransactionProcessorTest extends BaseIntegrationTest {
             Test Completed in %d millis
             ************************
             """,
-                transactionNotInititativeHpanNumber+transactionInititativeHpanNumber+errorUseCases.size(),
-                (transactionNotInititativeHpanNumber/2)+(transactionInititativeHpanNumber/2),
-                transactionNotInititativeHpanNumber/2,
+                trxWithInititativeHpanInDBNumber+trxWhitoutInititativeHpanInDBNumber+errorUseCases.size(),
+                (trxWithInititativeHpanInDBNumber/2)+(trxWhitoutInititativeHpanInDBNumber/2),
+                trxWithInititativeHpanInDBNumber/2,
                 transactionsPartition0.size(), userIdsInPartition0,
                 transactionsPartition1.size(), userIdsInPartition1,
                 timeReadValidTransactionEnd-timeReadValidTransactionStart,
-                transactionInititativeHpanNumber/2,
+                trxWhitoutInititativeHpanInDBNumber/2,
                 timeReadTransactionRejectedEnd-timeReadTransactionRejectedEStart,
                 timeEnd-timePublishTransactionsStart
         );
 
-        checkOffsets(transactionEvents.size(), transactionNotInititativeHpanNumber/2);
+        checkOffsets(transactionEvents.size()+1, trxWithInititativeHpanInDBNumber/2); // +1 due to other applicationName useCase
     }
 
-    private List<String> getInvalidHpanTrxs(int transactionInputInvalidHpanNumber, String mccValid) {
-        return IntStream.range(0, transactionInputInvalidHpanNumber)
+    private List<String> getTrxFordHpanPresent(int trxInputNotPresentHpanNumber) {
+        return IntStream.range(0, trxInputNotPresentHpanNumber)
                 .mapToObj(n -> TransactionDTOFaker.mockInstanceBuilder(n)
                         .hpan("HPAN%s".formatted(n % hpanInitiativeNumber))
                         .mcc(n % 2 == 0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
@@ -111,8 +145,8 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 .toList();
     }
 
-    private List<String> getValidHpanTrxs(int transactionInputValidHpanNumber, String mccValid) {
-        return IntStream.range(0, transactionInputValidHpanNumber)
+    private List<String> getTrxForHpanNotPresent(int trxNotPresentdHpanNumber) {
+        return IntStream.range(0, trxNotPresentdHpanNumber)
                 .mapToObj(i -> TransactionDTOFaker.mockInstanceBuilder(i + hpanInitiativeNumber)
                         .mcc(i % 2 == 0 ? mccExcluded.get(new Random().nextInt(mccExcluded.size())) : mccValid)
                         .build())
@@ -152,10 +186,51 @@ class TransactionProcessorTest extends BaseIntegrationTest {
                 errorMessage -> checkErrorMessageHeaders(errorMessage, "[TRX_USERID_SPLITTER] Unexpected JSON", jsonNotValid)
         ));
 
+        final String failingRewardPublishingIdTrxAcquirer = "FAILING_REWARD_PUBLISHING";
+        TransactionDTO failingRewardPublishing = TransactionDTOFaker.mockInstanceBuilder(500)
+                .hpan("HPAN%s".formatted(500 % hpanInitiativeNumber))
+                .mcc(mccValid)
+                .correlationId("CORRELATIONID2")
+                .idTrxAcquirer(failingRewardPublishingIdTrxAcquirer)
+                .build();
+
+        errorUseCases.add(Pair.of(
+                () -> {
+                    Mockito.doReturn(false).when(transactionNotifierServiceSpy).notify(Mockito.argThat(i -> failingRewardPublishingIdTrxAcquirer.equals(i.getIdTrxAcquirer())));
+                    return TestUtils.jsonSerializer(failingRewardPublishing);
+                },
+                errorMessage -> {
+                    TransactionEnrichedDTO transactionEnrichedFailingReward = retrievePayloadTrxEnriched(transaction2EnrichedMapper, failingRewardPublishing);
+                    checkErrorMessageHeaders(topicKeyedTransactionOutput,"", errorMessage, "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", TestUtils.jsonSerializer(transactionEnrichedFailingReward),transactionEnrichedFailingReward.getUserId(),false, false);
+                })
+        );
+
+        final String exceptionWhenRewardPublishIdTrxAcquirer = "FAILING_REWARD_PUBLISHING_DUE_EXCEPTION";
+        TransactionDTO exceptionWhenRewardPublish = TransactionDTOFaker.mockInstanceBuilder(501)
+                .hpan("HPAN%s".formatted(501 % hpanInitiativeNumber))
+                .mcc(mccValid)
+                .correlationId("CORRELATIONID3")
+                .idTrxAcquirer(exceptionWhenRewardPublishIdTrxAcquirer)
+                .build();
+        errorUseCases.add(Pair.of(
+                () -> {
+                    Mockito.doThrow(new KafkaException()).when(transactionNotifierServiceSpy).notify(Mockito.argThat(i -> exceptionWhenRewardPublishIdTrxAcquirer.equals(i.getIdTrxAcquirer())));
+                    return TestUtils.jsonSerializer(exceptionWhenRewardPublish);
+                },
+                errorMessage -> {
+                    TransactionEnrichedDTO transactionEnrichedExceptionRewardPublish = retrievePayloadTrxEnriched(transaction2EnrichedMapper, exceptionWhenRewardPublish);
+                    checkErrorMessageHeaders(topicKeyedTransactionOutput, "", errorMessage, "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", TestUtils.jsonSerializer(transactionEnrichedExceptionRewardPublish),transactionEnrichedExceptionRewardPublish.getUserId(),false, false);
+                }
+        ));
+    }
+
+    private TransactionEnrichedDTO retrievePayloadTrxEnriched(Transaction2EnrichedMapper transaction2EnrichedMapper, TransactionDTO failingRewardPublishing) {
+        return hpanInitiativesRepository.findById(failingRewardPublishing.getHpan())
+                .map(e -> transaction2EnrichedMapper.apply(failingRewardPublishing,e)).block();
     }
 
     private void checkErrorMessageHeaders(ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload) {
-        checkErrorMessageHeaders(topicTransactionInput, errorMessage, errorDescription, expectedPayload);
+        checkErrorMessageHeaders(topicTransactionInput, groupIdTrxProcessorConsumer, errorMessage, errorDescription, expectedPayload,null);
     }
     //endregion
 
