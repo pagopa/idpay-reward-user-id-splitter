@@ -7,7 +7,7 @@ reactor:
 
 spring:
   application:
-    name: idpay-reward-calculator
+    name: idpay-reward-user-id-splitter
   jmx.enabled: true
   config:
     activate:

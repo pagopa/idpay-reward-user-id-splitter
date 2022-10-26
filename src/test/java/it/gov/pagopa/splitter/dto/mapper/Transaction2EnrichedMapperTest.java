@@ -2,6 +2,8 @@ package it.gov.pagopa.splitter.dto.mapper;
 
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
+import it.gov.pagopa.splitter.model.HpanInitiatives;
+import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,39 +11,28 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
+public
 class Transaction2EnrichedMapperTest {
 
     @Test
     void testApplyWithUserId() {
         // Given
         TransactionDTO transaction = TransactionDTOFaker.mockInstance(1);
-        String userId = "USERID";
 
         Transaction2EnrichedMapper transaction2EnrichedMapper = new Transaction2EnrichedMapper();
+        HpanInitiatives hpanInitiatives = HpanInitiativesFaker.mockInstance(1);
+        hpanInitiatives.setHpan(transaction.getHpan());
+
         // When
-        TransactionEnrichedDTO result = transaction2EnrichedMapper.apply(transaction,userId);
+        TransactionEnrichedDTO result = transaction2EnrichedMapper.apply(transaction,hpanInitiatives);
 
         // Then
         assertionFromFieldOfTransactionDTO(transaction, result);
-        Assertions.assertEquals(userId,result.getUserId());
+        assertionFromFieldOfHpanInitiatives(hpanInitiatives, result);
         TestUtils.checkTransactionEnrichedNotNullFields(result);
     }
-    @Test
-    void testApplyWithUserIdNull() {
-        // Given
-        TransactionDTO transaction = TransactionDTOFaker.mockInstance(1);
 
-        Transaction2EnrichedMapper transaction2EnrichedMapper = new Transaction2EnrichedMapper();
-        // When
-        TransactionEnrichedDTO result = transaction2EnrichedMapper.apply(transaction,null);
-
-        // Then
-        assertionFromFieldOfTransactionDTO(transaction, result);
-        Assertions.assertNull(result.getUserId());
-        TestUtils.checkTransactionEnrichedNotNullFields(result,"userId");
-    }
-
-    private void assertionFromFieldOfTransactionDTO(TransactionDTO transaction, TransactionEnrichedDTO result) {
+    public static void assertionFromFieldOfTransactionDTO(TransactionDTO transaction, TransactionEnrichedDTO result) {
         Assertions.assertEquals(transaction.getIdTrxAcquirer(), result.getIdTrxAcquirer());
         Assertions.assertEquals(transaction.getAcquirerCode(), result.getAcquirerCode());
         Assertions.assertEquals(transaction.getTrxDate(), result.getTrxDate());
@@ -62,5 +53,11 @@ class Transaction2EnrichedMapperTest {
         Assertions.assertEquals(transaction.getVat(), result.getVat());
         Assertions.assertEquals(transaction.getPosType(), result.getPosType());
         Assertions.assertEquals(transaction.getPar(), result.getPar());
+    }
+
+    public static void assertionFromFieldOfHpanInitiatives(HpanInitiatives hpanInitiatives, TransactionEnrichedDTO result) {
+        Assertions.assertEquals(hpanInitiatives.getUserId(), result.getUserId());
+        Assertions.assertEquals(hpanInitiatives.getMaskedPan(), result.getMaskedPan());
+        Assertions.assertEquals(hpanInitiatives.getBrandLogo(), result.getBrandLogo());
     }
 }

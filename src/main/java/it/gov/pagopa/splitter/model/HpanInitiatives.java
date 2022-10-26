@@ -17,6 +17,8 @@ import java.util.List;
 public class HpanInitiatives {
     @Id
     private String hpan;
+    private String maskedPan;
+    private String brandLogo;
     private String userId;
     private List<OnboardedInitiative> onboardedInitiatives;
 }
