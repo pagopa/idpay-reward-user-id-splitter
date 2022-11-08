@@ -8,6 +8,7 @@ import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
 import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
 import org.junit.jupiter.api.Assertions;
 import org.springframework.util.ReflectionUtils;
 
@@ -70,7 +71,8 @@ public class TestUtils {
 
     /** To read {@link org.apache.kafka.common.header.Header} value */
     public static String getHeaderValue(ConsumerRecord<String, String> errorMessage, String errorMsgHeaderSrcServer) {
-        return new String(errorMessage.headers().lastHeader(errorMsgHeaderSrcServer).value());
+        Header header = errorMessage.headers().lastHeader(errorMsgHeaderSrcServer);
+        return header!=null? new String(header.value()) : null;
     }
 
 }
