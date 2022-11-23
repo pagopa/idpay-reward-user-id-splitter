@@ -1,6 +1,5 @@
 package it.gov.pagopa.splitter.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -13,7 +12,6 @@ import java.time.OffsetDateTime;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(of = {"idTrxAcquirer", "acquirerCode", "trxDate", "operationType", "acquirerId"}, callSuper = false)
 public class TransactionDTO {
     String idTrxAcquirer;
@@ -38,6 +36,4 @@ public class TransactionDTO {
     String vat;
     String posType;
     String par;
-
-
 }

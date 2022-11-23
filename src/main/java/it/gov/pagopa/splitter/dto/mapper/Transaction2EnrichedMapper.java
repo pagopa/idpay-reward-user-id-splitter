@@ -2,14 +2,15 @@ package it.gov.pagopa.splitter.dto.mapper;
 
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
+import it.gov.pagopa.splitter.model.HpanInitiatives;
 import org.springframework.stereotype.Service;
 
 import java.util.function.BiFunction;
 
 @Service
-public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO,String, TransactionEnrichedDTO> {
+public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO, HpanInitiatives, TransactionEnrichedDTO> {
     @Override
-    public TransactionEnrichedDTO apply(TransactionDTO transactionDTO, String userId) {
+    public TransactionEnrichedDTO apply(TransactionDTO transactionDTO, HpanInitiatives hpanInitiatives) {
         TransactionEnrichedDTO out = new TransactionEnrichedDTO();
 
         out.setIdTrxAcquirer(transactionDTO.getIdTrxAcquirer());
@@ -33,7 +34,9 @@ public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO,Str
         out.setPosType(transactionDTO.getPosType());
         out.setPar(transactionDTO.getPar());
 
-        out.setUserId(userId);
+        out.setUserId(hpanInitiatives.getUserId());
+        out.setMaskedPan(hpanInitiatives.getMaskedPan());
+        out.setBrandLogo(hpanInitiatives.getBrandLogo());
         return out;
     }
 }

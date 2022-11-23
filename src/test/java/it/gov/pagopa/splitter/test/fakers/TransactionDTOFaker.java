@@ -52,8 +52,8 @@ public class TransactionDTOFaker {
                         trxDateTime,
                         ZoneId.of("Europe/Rome").getRules().getOffset(trxDateTime)
                 ))
-                .hpan("HPAN%s".formatted(bias))
-                .operationType("OPERATIONTYPE%s".formatted(bias))
+                .hpan("HPAN_%s".formatted(bias))
+                .operationType("00")
                 .circuitType("CIRCUITTYPE%s".formatted(bias))
                 .idTrxIssuer("IDTRXISSUER%s".formatted(bias))
                 .correlationId("CORRELATIONID%s".formatted(bias))
@@ -70,4 +70,38 @@ public class TransactionDTOFaker {
                 .posType("POSTYPE%s".formatted(bias))
                 .par("PAR%s".formatted(bias));
     }
+
+    public static TransactionDTO mockInstanceWithNHpan(Integer bias, Integer hpanInitiativesNumber) {
+        LocalDate trxDate = LocalDate.of(2022, getRandomPositiveNumber(bias, 11) + 1, getRandomPositiveNumber(bias, 27)+1);
+        LocalTime trxTime = LocalTime.of(getRandomPositiveNumber(bias, 23), getRandomPositiveNumber(bias, 59), getRandomPositiveNumber(bias, 59));
+        LocalDateTime trxDateTime = LocalDateTime.of(trxDate, trxTime);
+
+        return TransactionDTO.builder()
+                .idTrxAcquirer("IDTRXACQUIRER%s".formatted(bias))
+                .acquirerCode("ACQUIRERCODE%s".formatted(bias))
+                .trxDate(OffsetDateTime.of(
+                        trxDateTime,
+                        ZoneId.of("Europe/Rome").getRules().getOffset(trxDateTime)
+                ))
+                .hpan("HPAN%s".formatted(bias%hpanInitiativesNumber))
+                .operationType("OPERATIONTYPE%s".formatted(bias))
+                .circuitType("CIRCUITTYPE%s".formatted(bias))
+                .idTrxIssuer("IDTRXISSUER%s".formatted(bias))
+                .correlationId("CORRELATIONID%s".formatted(bias))
+                .amount(BigDecimal.valueOf(getRandomPositiveNumber(bias, 200)))
+                .amountCurrency("AMOUNTCURRENCY%s".formatted(bias))
+                //.mcc("MCC%s".formatted(bias))
+                .mcc(bias%2==0 ? "2000":"4784")
+                .acquirerId("ACQUIRERID%s".formatted(bias))
+                .merchantId("MERCHANTID%s".formatted(bias))
+                .terminalId("TERMINALID%s".formatted(bias))
+                .bin("BIN%s".formatted(bias))
+                .senderCode("SENDERCODE%s".formatted(bias))
+                .fiscalCode("FISCALCODE%s".formatted(bias))
+                .vat("VAT%s".formatted(bias))
+                .posType("POSTYPE%s".formatted(bias))
+                .par("PAR%s".formatted(bias))
+                .build();
+    }
+
 }
