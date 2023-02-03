@@ -16,14 +16,14 @@ spring:
   cloud:
     stream:
       function:
-        definition: trxProcessor
+        definition: trxProcessor;trxProcessorOut;errors;trxRejectedProducer
       bindings:
         trxProcessor-in-0:
           destination: ${KAFKA_RTD_TOPIC:rtd-trx}
           group: ${KAFKA_RTD_GROUP_ID:idpay-consumer-group}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-rtd
-        trxProcessor-out-0:
+        trxProcessorOut-out-0:
           destination: ${KAFKA_TRANSACTION_USER_ID_SPLITTER_TOPIC:idpay-transaction-user-id-splitter}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-idpay
@@ -96,7 +96,7 @@ spring:
                 socket.connection.setup.timeout:
                   max.ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
                   ms: ${KAFKA_RTD_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
-          trxProcessor-out-0:
+          trxProcessorOut-out-0:
             producer:
               configuration:
                 client.id: trxProcessor-userid-splitter
@@ -107,7 +107,7 @@ spring:
           trxRejectedProducer-out-0:
             producer:
               configuration:
-                client.id: trxProcessor-transaction
+                client.id: trxProcessor-userid-splitter-rejected-transaction
                 connections.max.idle.ms: ${KAFKA_TRANSACTION_CONNECTION_MAX_IDLE_TIME:180000}
                 retry.backoff.ms: ${KAFKA_TRANSACTION_KAFKA_RETRY_MS:${KAFKA_RETRY_MS:10000}}
                 linger.ms: ${KAFKA_TRANSACTION_LINGER_MS:${KAFKA_LINGER_MS:2}}
@@ -115,7 +115,7 @@ spring:
           errors-out-0:
             producer:
               configuration:
-                client.id: trxProcessor-errors
+                client.id: trxProcessor-userid-splitter-errors
                 connections.max.idle.ms: ${KAFKA_ERRORS_CONNECTION_MAX_IDLE_TIME:180000}
                 retry.backoff.ms: ${KAFKA_ERRORS_KAFKA_RETRY_MS:${KAFKA_RETRY_MS:10000}}
                 linger.ms: ${KAFKA_ERRORS_LINGER_MS:${KAFKA_LINGER_MS:2}}
