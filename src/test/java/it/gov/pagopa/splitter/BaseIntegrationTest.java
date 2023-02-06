@@ -97,7 +97,9 @@ import static org.awaitility.Awaitility.await;
         })
 @AutoConfigureDataMongo
 public abstract class BaseIntegrationTest {
-    public static final String APPLICATION_NAME = "idpay-reward-user-id-splitter";
+
+    @Value("${spring.application.name}")
+    public String applicationName;
 
     @Autowired
     protected EmbeddedKafkaBroker kafkaBroker;
@@ -241,7 +243,7 @@ public abstract class BaseIntegrationTest {
     private int totaleMessageSentCounter =0;
     protected void publishIntoEmbeddedKafka(String topic, Iterable<Header> headers, String key, String payload) {
         final RecordHeader retryHeader = new RecordHeader("RETRY", "1".getBytes(StandardCharsets.UTF_8));
-        final RecordHeader applicationNameHeader = new RecordHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, APPLICATION_NAME.getBytes(StandardCharsets.UTF_8));
+        final RecordHeader applicationNameHeader = new RecordHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, applicationName.getBytes(StandardCharsets.UTF_8));
 
         AtomicBoolean containAppNameHeader = new AtomicBoolean(false);
         if(headers!= null){
@@ -354,7 +356,7 @@ public abstract class BaseIntegrationTest {
     }
 
     protected void checkErrorMessageHeaders(String srcTopic,String group, ConsumerRecord<String, String> errorMessage, String errorDescription, String expectedPayload, String expectedKey, boolean expectRetryHeader, boolean expectedAppNameHeader) {
-        Assertions.assertEquals(expectedAppNameHeader? APPLICATION_NAME : null, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME));
+        Assertions.assertEquals(expectedAppNameHeader? applicationName : null, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME));
         Assertions.assertEquals(expectedAppNameHeader? group : null, TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_GROUP));
 
         Assertions.assertEquals("kafka", TestUtils.getHeaderValue(errorMessage, ErrorNotifierServiceImpl.ERROR_MSG_HEADER_SRC_TYPE));
