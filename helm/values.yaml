@@ -49,6 +49,10 @@ microservice-chart:
     APP: "idpay-reward-user-id-splitter"
     KAFKA_RTD_GROUP_ID: "idpay-consumer-group"
     CACHE_REFRESH_MS_RATE: "31536000000"
+    MONGODB_DBNAME: "idpay"
+    APPLICATIONINSIGHTS_ROLE_NAME: "idpayrewarduseridsplitter"
+    APPLICATIONINSIGHTS_INSTRUMENTATION_LOGGING_LEVEL: "OFF"
+    APPLICATIONINSIGHTS_INSTRUMENTATION_MICROMETER_ENABLED: "false"
 
   envConfigMapExternals:
     idpay-common:
