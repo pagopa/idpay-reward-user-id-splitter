@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Flux;
@@ -57,7 +58,12 @@ class UserIdSplitterMediatorImplTest {
 
         Flux<Message<String>> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2,transactionDTO3)
                 .map(TestUtils::jsonSerializer)
-                .map(MessageBuilder::withPayload).map(MessageBuilder::build);
+                .map(payload -> MessageBuilder
+                        .withPayload(payload)
+                        .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, 0)
+                        .setHeader(KafkaHeaders.OFFSET, 0L)
+                )
+                .map(MessageBuilder::build);
 
         Mockito.when(transactionFilterServiceMock.filter(transactionDTO1)).thenReturn(true);
         Mockito.when(transactionFilterServiceMock.filter(transactionDTO2)).thenReturn(true);
@@ -92,7 +98,12 @@ class UserIdSplitterMediatorImplTest {
         TransactionDTO transactionDTO2 = TransactionDTOFaker.mockInstance(2);
         Flux<Message<String>> transactionDTOFlux = Flux.just(transactionDTO1,transactionDTO2)
                 .map(TestUtils::jsonSerializer)
-                .map(MessageBuilder::withPayload).map(MessageBuilder::build);
+                .map(payload -> MessageBuilder
+                        .withPayload(payload)
+                        .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, 0)
+                        .setHeader(KafkaHeaders.OFFSET, 0L)
+                )
+                .map(MessageBuilder::build);
 
         Mockito.when(transactionFilterServiceMock.filter(transactionDTO1)).thenReturn(true);
         Mockito.when(transactionFilterServiceMock.filter(transactionDTO2)).thenReturn(true);
@@ -135,7 +146,12 @@ class UserIdSplitterMediatorImplTest {
         TransactionDTO transactionDTO1 = TransactionDTOFaker.mockInstance(1);
         Flux<Message<String>> transactionDTOFlux = Flux.just(transactionDTO1)
                 .map(TestUtils::jsonSerializer)
-                .map(MessageBuilder::withPayload).map(MessageBuilder::build);
+                .map(payload -> MessageBuilder
+                        .withPayload(payload)
+                        .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, 0)
+                        .setHeader(KafkaHeaders.OFFSET, 0L)
+                )
+                .map(MessageBuilder::build);
 
         Mockito.when(transactionFilterServiceMock.filter(transactionDTO1)).thenReturn(true);
 
@@ -160,7 +176,11 @@ class UserIdSplitterMediatorImplTest {
 
         Flux<Message<String>> msgs = Flux.just(trx1, trx2)
                 .map(TestUtils::jsonSerializer)
-                .map(MessageBuilder::withPayload)
+                .map(payload -> MessageBuilder
+                        .withPayload(payload)
+                        .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, 0)
+                        .setHeader(KafkaHeaders.OFFSET, 0L)
+                )
                 .doOnNext(m->m.setHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, "otherAppName".getBytes(StandardCharsets.UTF_8)))
                 .map(MessageBuilder::build);
 
