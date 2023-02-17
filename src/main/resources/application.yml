@@ -86,7 +86,7 @@ spring:
               startOffset: ${KAFKA_RTD_START_OFFSET:${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}}
               autoCommitOffset: false
               ackMode: MANUAL_IMMEDIATE
-              ackTime: ${KAFKA_RTD_ACK_MILLIS:10000}
+              ackTime: ${KAFKA_RTD_ACK_MILLIS:500}
               standardHeaders: ${KAFKA_RTD_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
               configuration:
                 max.poll:
