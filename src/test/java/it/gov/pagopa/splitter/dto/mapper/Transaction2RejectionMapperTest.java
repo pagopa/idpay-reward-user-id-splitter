@@ -48,6 +48,6 @@ class Transaction2RejectionMapperTest {
         Assertions.assertEquals("REJECTED", result.getStatus());
         Assertions.assertEquals(List.of(rejectionReason),result.getRejectionReasons());
 
-        TestUtils.checkTransactionRejectedNotNullFields(result, "userId", "maskedPan", "brandLogo");
+        TestUtils.checkTransactionRejectedNotNullFields(result, "userId", "maskedPan", "brandLogo", "brand");
     }
 }
