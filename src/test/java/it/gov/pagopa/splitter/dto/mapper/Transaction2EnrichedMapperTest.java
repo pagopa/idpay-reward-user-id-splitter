@@ -59,5 +59,6 @@ class Transaction2EnrichedMapperTest {
         Assertions.assertEquals(hpanInitiatives.getUserId(), result.getUserId());
         Assertions.assertEquals(hpanInitiatives.getMaskedPan(), result.getMaskedPan());
         Assertions.assertEquals(hpanInitiatives.getBrandLogo(), result.getBrandLogo());
+        Assertions.assertEquals(hpanInitiatives.getBrand(), result.getBrand());
     }
 }

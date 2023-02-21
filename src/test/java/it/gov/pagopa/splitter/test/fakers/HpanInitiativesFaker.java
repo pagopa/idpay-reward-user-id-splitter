@@ -24,6 +24,7 @@ public final class HpanInitiativesFaker {
         out.setHpan("HPAN%d".formatted(bias));
         out.setMaskedPan("MASKEDHPAN%d".formatted(bias));
         out.setBrandLogo("BRANDLOGO%d".formatted(bias));
+        out.setBrand("BRAND%d".formatted(bias));
         out.setUserId("%sUSERID%s_%d".formatted(bias,bias,bias));
 
         OnboardedInitiative onboardedInitiative = OnboardedInitiative.builder()
@@ -53,6 +54,7 @@ public final class HpanInitiativesFaker {
         out.setHpan(fakeValuesService.bothify("?????"));
         out.setMaskedPan(fakeValuesService.bothify("?????"));
         out.setBrandLogo(fakeValuesService.bothify("?????"));
+        out.setBrand(fakeValuesService.bothify("?????"));
         out.setUserId(fakeValuesService.bothify("?????"));
 
 
@@ -68,6 +70,7 @@ public final class HpanInitiativesFaker {
         out.setHpan(fakeValuesService.bothify("?????"));
         out.setMaskedPan(fakeValuesService.bothify("?????"));
         out.setBrandLogo(fakeValuesService.bothify("?????"));
+        out.setBrand(fakeValuesService.bothify("?????"));
         out.setUserId(fakeValuesService.bothify("?????"));
 
         OnboardedInitiative onboardedInitiative = OnboardedInitiative.builder()

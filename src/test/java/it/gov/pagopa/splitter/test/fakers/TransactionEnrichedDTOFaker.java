@@ -72,6 +72,7 @@ public class TransactionEnrichedDTOFaker {
         out.userId("userId_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
         out.maskedPan("maskedPan_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
         out.brandLogo("brandLogo_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
+        out.brand("brand_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
 
         TestUtils.checkNotNullFields(out);
         return out;
