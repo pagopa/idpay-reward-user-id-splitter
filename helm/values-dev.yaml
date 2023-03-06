@@ -21,11 +21,11 @@ microservice-chart:
     maxReplica: 4
     pollingInterval: 30 # seconds
     cooldownPeriod: 300 # seconds
-#    triggers:
-#      - type: cpu
-#        metadata:
-#          type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
-#          value: "70"
+    triggers:
+      - type: cpu
+        metadata:
+          type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
+          value: "70"
 
   envSecret:
     aks-api-url: cstar-d-weu-dev01-aks-apiserver-url
