@@ -45,6 +45,7 @@ import java.util.stream.IntStream;
         "logging.level.it.gov.pagopa.splitter.service.SenderTransactionRejectedServiceImpl=WARN",
         "logging.level.it.gov.pagopa.splitter.service.TransactionFilterServiceImpl=WARN",
         "logging.level.it.gov.pagopa.splitter.service.BaseKafkaConsumer=WARN",
+        "logging.level.it.gov.pagopa.splitter.utils.PerformanceLogger=WARN",
 })
 class TransactionProcessorTest extends BaseIntegrationTest {
     @Value("${app.filter.mccExcluded}")

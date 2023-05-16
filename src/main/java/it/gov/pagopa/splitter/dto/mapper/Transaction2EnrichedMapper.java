@@ -37,6 +37,7 @@ public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO, Hp
         out.setUserId(hpanInitiatives.getUserId());
         out.setMaskedPan(hpanInitiatives.getMaskedPan());
         out.setBrandLogo(hpanInitiatives.getBrandLogo());
+        out.setBrand(hpanInitiatives.getBrand());
         return out;
     }
 }

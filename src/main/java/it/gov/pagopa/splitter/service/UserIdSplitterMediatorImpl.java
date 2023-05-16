@@ -6,9 +6,7 @@ import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.support.GenericMessage;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,7 +35,6 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
 
             @Value("${spring.cloud.stream.kafka.bindings.trxProcessor-in-0.consumer.ackTime}") long commitMillis,
 
-
             ObjectMapper objectMapper) {
         super(applicationName);
         this.retrieveUserIdService = retrieveUserIdService;
@@ -56,7 +53,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
 
     @Override
     protected void subscribeAfterCommits(Flux<List<TransactionEnrichedDTO>> afterCommits2subscribe) {
-        afterCommits2subscribe.subscribe(p -> log.debug("[TRX_USERID_SPLITTER] Processed offsets committed successfully"));
+        afterCommits2subscribe.subscribe(p -> log.info("[TRX_USERID_SPLITTER] Processed offsets committed successfully"));
     }
 
     @Override
