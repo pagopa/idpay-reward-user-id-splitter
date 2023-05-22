@@ -6,6 +6,7 @@ import it.gov.pagopa.splitter.model.HpanInitiatives;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -60,5 +61,6 @@ class Transaction2EnrichedMapperTest {
         Assertions.assertEquals(hpanInitiatives.getMaskedPan(), result.getMaskedPan());
         Assertions.assertEquals(hpanInitiatives.getBrandLogo(), result.getBrandLogo());
         Assertions.assertEquals(hpanInitiatives.getBrand(), result.getBrand());
+        Assertions.assertEquals(RewardUserIdSplitterConstants.TRX_CHANNEL_RTD, result.getChannel());
     }
 }

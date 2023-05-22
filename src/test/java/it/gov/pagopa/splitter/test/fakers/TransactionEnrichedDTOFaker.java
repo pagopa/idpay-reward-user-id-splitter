@@ -4,6 +4,7 @@ import com.github.javafaker.service.FakeValuesService;
 import com.github.javafaker.service.RandomService;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.math.BigDecimal;
@@ -73,6 +74,7 @@ public class TransactionEnrichedDTOFaker {
         out.maskedPan("maskedPan_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
         out.brandLogo("brandLogo_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
         out.brand("brand_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
+        out.channel(RewardUserIdSplitterConstants.TRX_CHANNEL_RTD);
 
         TestUtils.checkNotNullFields(out);
         return out;
