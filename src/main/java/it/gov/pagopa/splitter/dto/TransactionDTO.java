@@ -14,26 +14,26 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @EqualsAndHashCode(of = {"idTrxAcquirer", "acquirerCode", "trxDate", "operationType", "acquirerId"}, callSuper = false)
 public class TransactionDTO {
-    String idTrxAcquirer;
-    String acquirerCode;
+    private String idTrxAcquirer;
+    private String acquirerCode;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    OffsetDateTime trxDate;
-    String hpan;
-    String operationType;
-    String circuitType;
-    String idTrxIssuer;
-    String correlationId;
-    BigDecimal amount;
-    String amountCurrency;
-    String mcc;
-    String acquirerId;
-    String merchantId;
-    String terminalId;
-    String bin;
-    String senderCode;
-    String fiscalCode;
-    String vat;
-    String posType;
-    String par;
+    private OffsetDateTime trxDate;
+    private String hpan;
+    private String operationType;
+    private String circuitType;
+    private String idTrxIssuer;
+    private String correlationId;
+    private BigDecimal amount;
+    private String amountCurrency;
+    private String mcc;
+    private String acquirerId;
+    private String merchantId;
+    private String terminalId;
+    private String bin;
+    private String senderCode;
+    private String fiscalCode;
+    private String vat;
+    private String posType;
+    private String par;
 }
