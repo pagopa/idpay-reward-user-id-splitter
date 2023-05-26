@@ -3,7 +3,7 @@ package it.gov.pagopa.splitter.test.fakers;
 import com.github.javafaker.service.FakeValuesService;
 import com.github.javafaker.service.RandomService;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
-import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.common.utils.TestUtils;
 import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import org.apache.commons.lang3.ObjectUtils;
 

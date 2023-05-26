@@ -1,11 +1,11 @@
 package it.gov.pagopa.splitter.dto.mapper;
 
+import it.gov.pagopa.common.utils.TestUtils;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
-import it.gov.pagopa.splitter.test.utils.TestUtils;
 import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -30,7 +30,7 @@ class Transaction2EnrichedMapperTest {
         // Then
         assertionFromFieldOfTransactionDTO(transaction, result);
         assertionFromFieldOfHpanInitiatives(hpanInitiatives, result);
-        TestUtils.checkTransactionEnrichedNotNullFields(result);
+        TestUtils.checkNotNullFields(result);
     }
 
     public static void assertionFromFieldOfTransactionDTO(TransactionDTO transaction, TransactionEnrichedDTO result) {

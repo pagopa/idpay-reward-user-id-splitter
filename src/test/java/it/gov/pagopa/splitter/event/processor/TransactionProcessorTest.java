@@ -1,16 +1,16 @@
 package it.gov.pagopa.splitter.event.processor;
 
+import it.gov.pagopa.common.kafka.utils.KafkaConstants;
 import it.gov.pagopa.splitter.BaseIntegrationTest;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.dto.mapper.Transaction2EnrichedMapper;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
 import it.gov.pagopa.splitter.repository.HpanInitiativesRepository;
-import it.gov.pagopa.splitter.service.ErrorNotifierServiceImpl;
 import it.gov.pagopa.splitter.service.TransactionNotifierService;
 import it.gov.pagopa.splitter.test.fakers.HpanInitiativesFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
-import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.common.utils.TestUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -44,8 +44,8 @@ import java.util.stream.IntStream;
         "logging.level.it.gov.pagopa.splitter.service.RetrieveUserIdServiceImpl=WARN",
         "logging.level.it.gov.pagopa.splitter.service.SenderTransactionRejectedServiceImpl=WARN",
         "logging.level.it.gov.pagopa.splitter.service.TransactionFilterServiceImpl=WARN",
-        "logging.level.it.gov.pagopa.splitter.service.BaseKafkaConsumer=WARN",
-        "logging.level.it.gov.pagopa.splitter.utils.PerformanceLogger=WARN",
+        "logging.level.it.gov.pagopa.common.reactive.kafka.consumer.BaseKafkaConsumer=WARN",
+        "logging.level.it.gov.pagopa.common.reactive.utils.PerformanceLogger=WARN",
 })
 class TransactionProcessorTest extends BaseIntegrationTest {
     @Value("${app.filter.mccExcluded}")
@@ -81,11 +81,11 @@ class TransactionProcessorTest extends BaseIntegrationTest {
         transactionEvents.addAll(getTrxFordHpanPresent(trxWithInititativeHpanInDBNumber));
 
         long timePublishTransactionsStart=System.currentTimeMillis();
-        transactionEvents.forEach(t-> publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
-        publishIntoEmbeddedKafka(topicTransactionInput, List.of(new RecordHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, "OTHERAPPNAME".getBytes(StandardCharsets.UTF_8))), null, "OTHERAPPMESSAGE");
+        transactionEvents.forEach(t-> kafkaTestUtilitiesService.publishIntoEmbeddedKafka(topicTransactionInput,null,null,t));
+        kafkaTestUtilitiesService.publishIntoEmbeddedKafka(topicTransactionInput, List.of(new RecordHeader(KafkaConstants.ERROR_MSG_HEADER_APPLICATION_NAME, "OTHERAPPNAME".getBytes(StandardCharsets.UTF_8))), null, "OTHERAPPMESSAGE");
 
         long timeReadValidTransactionStart=System.currentTimeMillis();
-        List<ConsumerRecord<String, String>> consumerRecords = consumeMessages(topicKeyedTransactionOutput, trxWithInititativeHpanInDBNumber/2, 30000);
+        List<ConsumerRecord<String, String>> consumerRecords = kafkaTestUtilitiesService.consumeMessages(topicKeyedTransactionOutput, trxWithInititativeHpanInDBNumber/2, 30000);
         long timeReadValidTransactionEnd=System.currentTimeMillis();
 
         List<ConsumerRecord<String, String>> transactionsPartition0 = consumerRecords.stream().filter(r->r.partition() == 0).toList();
@@ -96,7 +96,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
         Assertions.assertEquals(trxWithInititativeHpanInDBNumber/2, transactionsPartition0.size()+transactionsPartition1.size());
 
         long timeReadTransactionRejectedEStart=System.currentTimeMillis();
-        List<ConsumerRecord<String, String>> checkTopicTransactionRejectionResult = consumeMessages(topicTransactionRejectedOutput, trxWhitoutInititativeHpanInDBNumber/2, 30000);
+        List<ConsumerRecord<String, String>> checkTopicTransactionRejectionResult = kafkaTestUtilitiesService.consumeMessages(topicTransactionRejectedOutput, trxWhitoutInititativeHpanInDBNumber/2, 30000);
         long timeReadTransactionRejectedEnd=System.currentTimeMillis();
 
         Assertions.assertEquals(trxWhitoutInititativeHpanInDBNumber/2,checkTopicTransactionRejectionResult.size());
@@ -163,7 +163,7 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
         long[] countSaved={0};
         //noinspection ConstantConditions
-        waitFor(()->(countSaved[0]=hpanInitiativesRepository.count().block()) >= hpanInitiativeNumber, ()->"Expected %d saved rules, read %d".formatted(hpanInitiativeNumber, countSaved[0]), 15, 1000);
+        TestUtils.waitFor(()->(countSaved[0]=hpanInitiativesRepository.count().block()) >= hpanInitiativeNumber, ()->"Expected %d saved rules, read %d".formatted(hpanInitiativeNumber, countSaved[0]), 15, 1000);
 
     }
 
@@ -237,9 +237,9 @@ class TransactionProcessorTest extends BaseIntegrationTest {
 
     protected void checkOffsets(long expectedReadMessages, long exptectedPublishedResults){
         long timeStart = System.currentTimeMillis();
-        final Map<TopicPartition, OffsetAndMetadata> srcCommitOffsets = checkCommittedOffsets(topicTransactionInput, groupIdTrxProcessorConsumer,expectedReadMessages, 10, 1000);
+        final Map<TopicPartition, OffsetAndMetadata> srcCommitOffsets = kafkaTestUtilitiesService.checkCommittedOffsets(topicTransactionInput, groupIdTrxProcessorConsumer,expectedReadMessages, 10, 1000);
         long timeCommitChecked = System.currentTimeMillis();
-        final Map<TopicPartition, Long> destPublishedOffsets = checkPublishedOffsets(topicKeyedTransactionOutput, exptectedPublishedResults);
+        final Map<TopicPartition, Long> destPublishedOffsets = kafkaTestUtilitiesService.checkPublishedOffsets(topicKeyedTransactionOutput, exptectedPublishedResults);
         long timePublishChecked = System.currentTimeMillis();
         System.out.printf("""
                         ************************
