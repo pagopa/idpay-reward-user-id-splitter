@@ -1,11 +1,12 @@
 package it.gov.pagopa.splitter.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import it.gov.pagopa.common.kafka.utils.KafkaConstants;
+import it.gov.pagopa.common.utils.TestUtils;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
 import it.gov.pagopa.splitter.test.fakers.TransactionEnrichedDTOFaker;
-import it.gov.pagopa.splitter.test.utils.TestUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,18 +35,18 @@ class UserIdSplitterMediatorImplTest {
     private TransactionNotifierService transactionNotifierServiceMock;
 
     @Mock
-    private ErrorNotifierService errorNotifierServiceMock;
+    private SplitterErrorNotifierService splitterErrorNotifierServiceMock;
 
     private UserIdSplitterMediator userIdSplitterMediator;
 
     @BeforeEach
     void setUp() {
-        userIdSplitterMediator = new UserIdSplitterMediatorImpl("appName", retrieveUserIdServiceMock, transactionFilterServiceMock, transactionNotifierServiceMock, errorNotifierServiceMock, 10000,TestUtils.objectMapper);
+        userIdSplitterMediator = new UserIdSplitterMediatorImpl("appName", retrieveUserIdServiceMock, transactionFilterServiceMock, transactionNotifierServiceMock, splitterErrorNotifierServiceMock, 10000,TestUtils.objectMapper);
     }
 
     @AfterEach
     void checkErrorInvocations(){
-        Mockito.mockingDetails(errorNotifierServiceMock).getInvocations()
+        Mockito.mockingDetails(splitterErrorNotifierServiceMock).getInvocations()
                 .forEach(i-> System.out.println("Called errorNotifier: " + Arrays.toString(i.getArguments())));
     }
 
@@ -87,7 +88,7 @@ class UserIdSplitterMediatorImplTest {
         // Then
         Mockito.verify(transactionFilterServiceMock, Mockito.times(3)).filter(Mockito.any(TransactionDTO.class));
         Mockito.verify(retrieveUserIdServiceMock, Mockito.times(3)).resolveUserId(Mockito.any(TransactionDTO.class));
-        Mockito.verify(errorNotifierServiceMock, Mockito.times(1)).notifyEnrichedTransaction(Mockito.any(), Mockito.anyString(), Mockito.anyBoolean(),Mockito.any(IllegalStateException.class));
+        Mockito.verify(splitterErrorNotifierServiceMock, Mockito.times(1)).notifyEnrichedTransaction(Mockito.any(), Mockito.anyString(), Mockito.anyBoolean(),Mockito.any(IllegalStateException.class));
 
     }
 
@@ -116,11 +117,11 @@ class UserIdSplitterMediatorImplTest {
         userIdSplitterMediator.execute(transactionDTOFlux);
 
         // Then
-        Mockito.verifyNoInteractions(errorNotifierServiceMock);
+        Mockito.verifyNoInteractions(splitterErrorNotifierServiceMock);
 
         Mockito.verify(transactionFilterServiceMock, Mockito.times(2)).filter(Mockito.any(TransactionDTO.class));
         Mockito.verify(retrieveUserIdServiceMock, Mockito.times(2)).resolveUserId(Mockito.any(TransactionDTO.class));
-        Mockito.verify(errorNotifierServiceMock, Mockito.never()).notifyEnrichedTransaction(Mockito.any(), Mockito.anyString(), Mockito.anyBoolean(),Mockito.any(IllegalStateException.class));
+        Mockito.verify(splitterErrorNotifierServiceMock, Mockito.never()).notifyEnrichedTransaction(Mockito.any(), Mockito.anyString(), Mockito.anyBoolean(),Mockito.any(IllegalStateException.class));
     }
 
     @Test
@@ -137,7 +138,7 @@ class UserIdSplitterMediatorImplTest {
         Mockito.verifyNoInteractions(transactionFilterServiceMock);
         Mockito.verifyNoInteractions(transactionNotifierServiceMock);
 
-        Mockito.verify(errorNotifierServiceMock, Mockito.times(2)).notifyTransactionEvaluation(Mockito.any(Message.class), Mockito.anyString(),Mockito.anyBoolean(), Mockito.any(JsonProcessingException.class));
+        Mockito.verify(splitterErrorNotifierServiceMock, Mockito.times(2)).notifyTransactionEvaluation(Mockito.any(Message.class), Mockito.anyString(),Mockito.anyBoolean(), Mockito.any(JsonProcessingException.class));
     }
 
     @Test
@@ -165,7 +166,7 @@ class UserIdSplitterMediatorImplTest {
 
         Mockito.verify(transactionFilterServiceMock, Mockito.times(1)).filter(Mockito.any(TransactionDTO.class));
         Mockito.verify(retrieveUserIdServiceMock, Mockito.times(1)).resolveUserId(Mockito.any(TransactionDTO.class));
-        Mockito.verify(errorNotifierServiceMock, Mockito.times(1)).notifyTransactionEvaluation(Mockito.any(Message.class), Mockito.anyString(),Mockito.anyBoolean(), Mockito.any(RuntimeException.class));
+        Mockito.verify(splitterErrorNotifierServiceMock, Mockito.times(1)).notifyTransactionEvaluation(Mockito.any(Message.class), Mockito.anyString(),Mockito.anyBoolean(), Mockito.any(RuntimeException.class));
     }
 
     @Test
@@ -181,13 +182,13 @@ class UserIdSplitterMediatorImplTest {
                         .setHeader(KafkaHeaders.RECEIVED_PARTITION_ID, 0)
                         .setHeader(KafkaHeaders.OFFSET, 0L)
                 )
-                .doOnNext(m->m.setHeader(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, "otherAppName".getBytes(StandardCharsets.UTF_8)))
+                .doOnNext(m->m.setHeader(KafkaConstants.ERROR_MSG_HEADER_APPLICATION_NAME, "otherAppName".getBytes(StandardCharsets.UTF_8)))
                 .map(MessageBuilder::build);
 
         // When
         userIdSplitterMediator.execute(msgs);
 
         // Then
-        Mockito.verifyNoInteractions(retrieveUserIdServiceMock,transactionFilterServiceMock,transactionNotifierServiceMock, errorNotifierServiceMock);
+        Mockito.verifyNoInteractions(retrieveUserIdServiceMock,transactionFilterServiceMock,transactionNotifierServiceMock, splitterErrorNotifierServiceMock);
     }
 }

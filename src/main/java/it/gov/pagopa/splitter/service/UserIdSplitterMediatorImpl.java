@@ -2,6 +2,7 @@ package it.gov.pagopa.splitter.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import it.gov.pagopa.common.reactive.kafka.consumer.BaseKafkaConsumer;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -18,11 +19,11 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
-public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDTO, TransactionEnrichedDTO> implements UserIdSplitterMediator {
+public class UserIdSplitterMediatorImpl extends BaseKafkaConsumer<TransactionDTO, TransactionEnrichedDTO> implements UserIdSplitterMediator {
     private final RetrieveUserIdService retrieveUserIdService;
     private final TransactionFilterService transactionFilterService;
     private final TransactionNotifierService transactionNotifierService;
-    private final ErrorNotifierService errorNotifierService;
+    private final SplitterErrorNotifierService splitterErrorNotifierService;
     private final Duration commitDelay;
     private final ObjectReader objectReader;
 
@@ -31,7 +32,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
             RetrieveUserIdService retrieveUserIdService,
             TransactionFilterService transactionFilterService,
             TransactionNotifierService transactionNotifierService,
-            ErrorNotifierService errorNotifierService,
+            SplitterErrorNotifierService splitterErrorNotifierService,
 
             @Value("${spring.cloud.stream.kafka.bindings.trxProcessor-in-0.consumer.ackTime}") long commitMillis,
 
@@ -40,7 +41,7 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
         this.retrieveUserIdService = retrieveUserIdService;
         this.transactionFilterService = transactionFilterService;
         this.transactionNotifierService = transactionNotifierService;
-        this.errorNotifierService = errorNotifierService;
+        this.splitterErrorNotifierService = splitterErrorNotifierService;
         this.commitDelay = Duration.ofMillis(commitMillis);
 
         this.objectReader = objectMapper.readerFor(TransactionDTO.class);
@@ -63,12 +64,12 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
 
     @Override
     protected Consumer<Throwable> onDeserializationError(Message<String> message) {
-        return e -> errorNotifierService.notifyTransactionEvaluation(message, "[TRX_USERID_SPLITTER] Unexpected JSON", true, e);
+        return e -> splitterErrorNotifierService.notifyTransactionEvaluation(message, "[TRX_USERID_SPLITTER] Unexpected JSON", true, e);
     }
 
     @Override
     protected void notifyError(Message<String> message, Throwable e) {
-        errorNotifierService.notifyTransactionEvaluation(message, "[TRX_USERID_SPLITTER] An error occurred evaluating transaction", true, e);
+        splitterErrorNotifierService.notifyTransactionEvaluation(message, "[TRX_USERID_SPLITTER] An error occurred evaluating transaction", true, e);
     }
 
     @Override
@@ -84,14 +85,14 @@ public class UserIdSplitterMediatorImpl extends  BaseKafkaConsumer<TransactionDT
                         }
                     } catch (Exception e){
                         log.error("[UNEXPECTED_TRX_PROCESSOR_ERROR] Unexpected error occurred publishing transaction: {}", r);
-                        errorNotifierService.notifyEnrichedTransaction(TransactionNotifierServiceImpl.buildMessage(r), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
+                        splitterErrorNotifierService.notifyEnrichedTransaction(TransactionNotifierServiceImpl.buildMessage(r), "[TRX_USERID_SPLITTER] An error occurred while publishing the transaction evaluation result", true, e);
                     }
 
                 });
     }
 
     @Override
-    protected String getFlowName() {
+    public String getFlowName() {
         return "TRX_USERID_SPLITTER";
     }
 }
