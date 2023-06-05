@@ -3,6 +3,7 @@ package it.gov.pagopa.splitter.dto.mapper;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionEnrichedDTO;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
+import it.gov.pagopa.splitter.utils.RewardUserIdSplitterConstants;
 import org.springframework.stereotype.Service;
 
 import java.util.function.BiFunction;
@@ -38,6 +39,7 @@ public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO, Hp
         out.setMaskedPan(hpanInitiatives.getMaskedPan());
         out.setBrandLogo(hpanInitiatives.getBrandLogo());
         out.setBrand(hpanInitiatives.getBrand());
+        out.setChannel(RewardUserIdSplitterConstants.TRX_CHANNEL_RTD);
         return out;
     }
 }

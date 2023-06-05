@@ -1,4 +1,4 @@
-package it.gov.pagopa.splitter.utils;
+package it.gov.pagopa.common.reactive.utils;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
