@@ -5,7 +5,7 @@ import com.github.javafaker.service.RandomService;
 import it.gov.pagopa.splitter.model.ActiveTimeInterval;
 import it.gov.pagopa.splitter.model.HpanInitiatives;
 import it.gov.pagopa.splitter.model.OnboardedInitiative;
-import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.common.utils.TestUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

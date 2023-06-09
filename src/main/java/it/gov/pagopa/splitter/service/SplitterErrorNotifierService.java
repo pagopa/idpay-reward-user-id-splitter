@@ -2,7 +2,7 @@ package it.gov.pagopa.splitter.service;
 
 import org.springframework.messaging.Message;
 
-public interface ErrorNotifierService {
+public interface SplitterErrorNotifierService {
     void notifyEnrichedTransaction(Message<?> message, String description, boolean retryable, Throwable exception);
     void notifyTransactionEvaluation(Message<?> message, String description, boolean retryable, Throwable exception);
     @SuppressWarnings("squid:S00107") // suppressing too many parameters alert

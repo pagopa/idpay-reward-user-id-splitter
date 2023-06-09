@@ -3,7 +3,7 @@ package it.gov.pagopa.splitter.dto.mapper;
 import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
-import it.gov.pagopa.splitter.test.utils.TestUtils;
+import it.gov.pagopa.common.utils.TestUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +48,6 @@ class Transaction2RejectionMapperTest {
         Assertions.assertEquals("REJECTED", result.getStatus());
         Assertions.assertEquals(List.of(rejectionReason),result.getRejectionReasons());
 
-        TestUtils.checkTransactionRejectedNotNullFields(result, "userId", "maskedPan", "brandLogo", "brand");
+        TestUtils.checkNotNullFields(result, "userId", "maskedPan", "brandLogo", "brand", "channel");
     }
 }

@@ -1,8 +1,10 @@
-package it.gov.pagopa.splitter.service;
+package it.gov.pagopa.common.reactive.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectReader;
-import it.gov.pagopa.splitter.utils.PerformanceLogger;
-import it.gov.pagopa.splitter.utils.Utils;
+import it.gov.pagopa.common.reactive.kafka.exception.UncommittableError;
+import it.gov.pagopa.common.kafka.utils.KafkaConstants;
+import it.gov.pagopa.common.reactive.utils.PerformanceLogger;
+import it.gov.pagopa.common.utils.CommonUtilities;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.kafka.support.Acknowledgment;
@@ -41,13 +43,13 @@ public abstract class BaseKafkaConsumer<T, R> {
 
     private static final Collector<KafkaAcknowledgeResult<?>, ?, Map<Integer, Pair<Long, KafkaAcknowledgeResult<?>>>> kafkaAcknowledgeResultMapCollector =
             Collectors.groupingBy(KafkaAcknowledgeResult::partition
-            , Collectors.teeing(
-                    Collectors.minBy(Comparator.comparing(KafkaAcknowledgeResult::offset)),
-                    Collectors.maxBy(Comparator.comparing(KafkaAcknowledgeResult::offset)),
-                    (min, max) -> Pair.of(
-                            min.map(KafkaAcknowledgeResult::offset).orElse(null),
-                            max.orElse(null))
-            ));
+                    , Collectors.teeing(
+                            Collectors.minBy(Comparator.comparing(KafkaAcknowledgeResult::offset)),
+                            Collectors.maxBy(Comparator.comparing(KafkaAcknowledgeResult::offset)),
+                            (min, max) -> Pair.of(
+                                    min.map(KafkaAcknowledgeResult::offset).orElse(null),
+                                    max.orElse(null))
+                    ));
 
     protected BaseKafkaConsumer(String applicationName) {
         this.applicationName = applicationName;
@@ -56,7 +58,7 @@ public abstract class BaseKafkaConsumer<T, R> {
     record KafkaAcknowledgeResult<T> (Acknowledgment ack, Integer partition, Long offset, T result){
         public KafkaAcknowledgeResult(Message<?> message, T result) {
             this(
-                    Utils.getHeaderValue(message, KafkaHeaders.ACKNOWLEDGMENT),
+                    CommonUtilities.getHeaderValue(message, KafkaHeaders.ACKNOWLEDGMENT),
                     getMessagePartitionId(message),
                     getMessageOffset(message),
                     result
@@ -65,32 +67,32 @@ public abstract class BaseKafkaConsumer<T, R> {
     }
 
     private static Integer getMessagePartitionId(Message<?> message) {
-        return Utils.getHeaderValue(message, KafkaHeaders.RECEIVED_PARTITION_ID);
+        return CommonUtilities.getHeaderValue(message, KafkaHeaders.RECEIVED_PARTITION_ID);
     }
 
     private static Long getMessageOffset(Message<?> message) {
-        return Utils.getHeaderValue(message, KafkaHeaders.OFFSET);
+        return CommonUtilities.getHeaderValue(message, KafkaHeaders.OFFSET);
     }
 
     /** It will ask the superclass to handle the messages, then sequentially it will acknowledge them */
-    public final void execute(Flux<Message<String>> initiativeBeneficiaryRuleDTOFlux) {
+    public final void execute(Flux<Message<String>> messagesFlux) {
         Flux<List<R>> processUntilCommits =
-                initiativeBeneficiaryRuleDTOFlux
+                messagesFlux
                         .flatMapSequential(this::executeAcknowledgeAware)
 
                         .buffer(getCommitDelay())
                         .map(p -> {
-                            Map<Integer, Pair<Long, KafkaAcknowledgeResult<?>>> partition2Offsets = p.stream()
-                                    .collect(kafkaAcknowledgeResultMapCollector);
+                                    Map<Integer, Pair<Long, KafkaAcknowledgeResult<?>>> partition2Offsets = p.stream()
+                                            .collect(kafkaAcknowledgeResultMapCollector);
 
-                            log.info("[KAFKA_COMMIT][{}] Committing {} messages: {}", getFlowName(), p.size(),
-                                    partition2Offsets.entrySet().stream()
-                                            .map(e->"partition %d: %d - %d".formatted(e.getKey(),e.getValue().getKey(), e.getValue().getValue().offset()))
-                                            .collect(Collectors.joining(";")));
+                                    log.info("[KAFKA_COMMIT][{}] Committing {} messages: {}", getFlowName(), p.size(),
+                                            partition2Offsets.entrySet().stream()
+                                                    .map(e->"partition %d: %d - %d".formatted(e.getKey(),e.getValue().getKey(), e.getValue().getValue().offset()))
+                                                    .collect(Collectors.joining(";")));
 
-                            partition2Offsets.forEach((partition, offsets) -> Optional.ofNullable(offsets.getValue().ack()).ifPresent(Acknowledgment::acknowledge));
+                                    partition2Offsets.forEach((partition, offsets) -> Optional.ofNullable(offsets.getValue().ack()).ifPresent(Acknowledgment::acknowledge));
 
-                            return p.stream()
+                                    return p.stream()
                                             .map(KafkaAcknowledgeResult::result)
                                             .filter(Objects::nonNull)
                                             .toList();
@@ -109,26 +111,34 @@ public abstract class BaseKafkaConsumer<T, R> {
     private Mono<KafkaAcknowledgeResult<R>> executeAcknowledgeAware(Message<String> message) {
         KafkaAcknowledgeResult<R> defaultAck = new KafkaAcknowledgeResult<>(message, null);
 
-        byte[] retryingApplicationName = message.getHeaders().get(ErrorNotifierServiceImpl.ERROR_MSG_HEADER_APPLICATION_NAME, byte[].class);
+        byte[] retryingApplicationName = message.getHeaders().get(KafkaConstants.ERROR_MSG_HEADER_APPLICATION_NAME, byte[].class);
         if(retryingApplicationName != null && !new String(retryingApplicationName, StandardCharsets.UTF_8).equals(this.applicationName)){
-            log.info("[{}] Discarding message due to other application retry ({}): {}", getFlowName(), retryingApplicationName, message.getPayload());
+            log.info("[{}] Discarding message due to other application retry ({}): {}", getFlowName(), retryingApplicationName,  CommonUtilities.readMessagePayload(message));
             return Mono.just(defaultAck);
         }
 
         Map<String, Object> ctx=new HashMap<>();
         ctx.put(CONTEXT_KEY_START_TIME, System.currentTimeMillis());
-        ctx.put(CONTEXT_KEY_MSG_ID, message.getPayload());
+        ctx.put(CONTEXT_KEY_MSG_ID,  CommonUtilities.readMessagePayload(message));
 
         return execute(message, ctx)
                 .map(r -> new KafkaAcknowledgeResult<>(message, r))
                 .defaultIfEmpty(defaultAck)
 
                 .onErrorResume(e -> {
-                    notifyError(message, e);
-                    return Mono.just(defaultAck);
+                    if(e instanceof UncommittableError) {
+                        return Mono.error(e);
+                    } else {
+                        notifyError(message, e);
+                        return Mono.just(defaultAck);
+                    }
                 })
                 .doOnNext(r -> doFinally(message, r.result, ctx))
-                ;
+
+                .onErrorResume(e -> {
+                    log.info("Retrying after reactive pipeline error: ", e);
+                    return executeAcknowledgeAware(message);
+                });
     }
 
     /** to perform some operation at the end of business logic execution, thus before to wait for commit. As default, it will perform an INFO logging with performance time */
@@ -143,7 +153,7 @@ public abstract class BaseKafkaConsumer<T, R> {
     }
 
     /** Name used for logging purpose */
-    protected String getFlowName() {
+    public String getFlowName() {
         return getClass().getSimpleName();
     }
 
@@ -166,7 +176,7 @@ public abstract class BaseKafkaConsumer<T, R> {
 
     /** It will read and deserialize {@link Message#getPayload()} using the given {@link #getObjectReader()} */
     protected T deserializeMessage(Message<String> message) {
-        return Utils.deserializeMessage(message, getObjectReader(), onDeserializationError(message));
+        return CommonUtilities.deserializeMessage(message, getObjectReader(), onDeserializationError(message));
     }
 
 }
