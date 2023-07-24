@@ -37,6 +37,6 @@ public class TransactionNotifierServiceImpl implements TransactionNotifierServic
 
     public static Message<TransactionEnrichedDTO> buildMessage(TransactionEnrichedDTO transaction){
         return MessageBuilder.withPayload(transaction)
-                .setHeader(KafkaHeaders.MESSAGE_KEY,transaction.getUserId()).build();
+                .setHeader(KafkaHeaders.KEY,transaction.getUserId()).build();
     }
 }
