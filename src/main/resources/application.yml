@@ -14,9 +14,9 @@ spring:
     activate:
       on-profile: default
   cloud:
+    function:
+      definition: trxProcessor;trxProcessorOut;errors;trxRejectedProducer
     stream:
-      function:
-        definition: trxProcessor;trxProcessorOut;errors;trxRejectedProducer
       bindings:
         trxProcessor-in-0:
           destination: ${KAFKA_RTD_TOPIC:rtd-trx}
@@ -142,8 +142,8 @@ logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
     it.gov.pagopa: ${LOG_LEVEL_PAGOPA:INFO}
+    it.gov.pagopa.common.reactive.kafka.consumer: ${LOG_LEVEL_BASE_KAFKA_CONSUMER:INFO}
     it.gov.pagopa.splitter: ${LOG_LEVEL_SPLITTER:INFO}
-    it.gov.pagopa.splitter.service.BaseKafkaConsumer: ${LOG_LEVEL_BASE_KAFKA_CONSUMER:INFO}
     org.springframework.integration: ${LOG_LEVEL_SPRING_INTEGRATION:INFO}
     org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:INFO}
     org.springframework.ws: ${LOG_LEVEL_SPRING_WS:INFO}
