@@ -62,7 +62,7 @@ microservice-chart:
     idpay-common:
       TZ: TZ
     rtd-eventhub:
-      KAFKA_RTD_BROKER: kafka_broker_rtd
+      KAFKA_RTD_BROKER: kafka_broker_rtd_domain
       KAFKA_RTD_TOPIC: rtd_trx_topic
     idpay-eventhub-01:
       KAFKA_BROKER: kafka_broker
