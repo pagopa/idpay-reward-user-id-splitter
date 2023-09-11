@@ -1,9 +1,8 @@
 package it.gov.pagopa.common.web.exception;
 
-import it.gov.pagopa.common.mongo.retry.MongoRequestRateTooLargeRetryer;
-import it.gov.pagopa.common.mongo.retry.exception.MongoRequestRateTooLargeRetryExpiredException;
+import it.gov.pagopa.common.reactive.mongo.retry.MongoRequestRateTooLargeRetryer;
+import it.gov.pagopa.common.reactive.mongo.retry.exception.MongoRequestRateTooLargeRetryExpiredException;
 import it.gov.pagopa.common.web.dto.ErrorDTO;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ServerWebExchange;
 
 @RestControllerAdvice
 @Slf4j
@@ -28,7 +28,7 @@ public class MongoExceptionHandler {
 
   @ExceptionHandler(DataAccessException.class)
   protected ResponseEntity<ErrorDTO> handleDataAccessException(
-          DataAccessException ex, HttpServletRequest request) {
+          DataAccessException ex, ServerWebExchange request) {
 
     if (MongoRequestRateTooLargeRetryer.isRequestRateTooLargeException(ex)) {
       Long retryAfterMs = MongoRequestRateTooLargeRetryer.getRetryAfterMs(ex);
@@ -41,14 +41,14 @@ public class MongoExceptionHandler {
 
   @ExceptionHandler(MongoRequestRateTooLargeRetryExpiredException.class)
   protected ResponseEntity<ErrorDTO> handleMongoRequestRateTooLargeRetryExpiredException(
-          MongoRequestRateTooLargeRetryExpiredException ex, HttpServletRequest request) {
+          MongoRequestRateTooLargeRetryExpiredException ex, ServerWebExchange request) {
 
     return getErrorDTOResponseEntity(ex, request, ex.getRetryAfterMs());
   }
 
   @NotNull
   private ResponseEntity<ErrorDTO> getErrorDTOResponseEntity(Exception ex,
-                                                             HttpServletRequest request, Long retryAfterMs) {
+                                                             ServerWebExchange request, Long retryAfterMs) {
     String message = ex.getMessage();
 
     log.info(
@@ -66,7 +66,7 @@ public class MongoExceptionHandler {
     }
 
     return bodyBuilder
-            .body(new ErrorDTO(HttpStatus.TOO_MANY_REQUESTS.value(), "TOO_MANY_REQUESTS"));
+            .body(new ErrorDTO("TOO_MANY_REQUESTS", "TOO_MANY_REQUESTS"));
   }
 
 }
