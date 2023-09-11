@@ -15,7 +15,7 @@ FROM amazoncorretto:17.0.8-alpine3.18@sha256:f59b4f511346db4e473fb98c65b86254926
 
 RUN apk add shadow
 RUN apk upgrade libssl3 libcrypto3 busybox ssl_client
-# TODO restore me RUN useradd --uid 10000 runner
+RUN useradd --uid 10000 runner
 
 VOLUME /tmp
 WORKDIR /app
