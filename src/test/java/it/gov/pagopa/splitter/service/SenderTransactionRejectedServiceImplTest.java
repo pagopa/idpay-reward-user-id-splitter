@@ -4,10 +4,15 @@ import it.gov.pagopa.splitter.dto.TransactionDTO;
 import it.gov.pagopa.splitter.dto.TransactionRejectedDTO;
 import it.gov.pagopa.splitter.dto.mapper.Transaction2RejectionMapper;
 import it.gov.pagopa.splitter.test.fakers.TransactionDTOFaker;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.stream.function.StreamBridge;
-
+import org.springframework.messaging.Message;
+import reactor.core.publisher.Flux;
+@ExtendWith(MockitoExtension.class)
 class SenderTransactionRejectedServiceImplTest {
 
     @Test
@@ -31,5 +36,14 @@ class SenderTransactionRejectedServiceImplTest {
         // Then
         Mockito.verify(streamBridge).send(Mockito.eq(binding),Mockito.same(transactionRejectedDTO));
         Mockito.verify(transaction2RejectionMapper).apply(Mockito.any(),Mockito.eq(rejectionReason));
+    }
+
+    @Test
+    void testTrxRejectedProducerConfig(){
+        SenderTransactionRejectedServiceImpl.TrxRejectedProducerConfig trxRejectedProducerConfig = new SenderTransactionRejectedServiceImpl.TrxRejectedProducerConfig();
+
+   Flux<Message<TransactionDTO>> fluxMessage = trxRejectedProducerConfig.trxRejectedProducer().get();
+
+        Assertions.assertEquals(Flux.empty(), fluxMessage);
     }
 }
