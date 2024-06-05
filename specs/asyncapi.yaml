@@ -1,0 +1,296 @@
+asyncapi: 2.0.0
+info:
+        title: Reward User Id Splitter Service
+        version: 1.0.0
+        description: >-
+                Its purpose is
+tags:
+        - name: "processTransaction"
+          description: " Process transaction"
+
+        - name: "sendTransaction"
+          description: " Send transaction"
+
+        - name: "sendRejectedTransaction"
+          description: " Send rejected transaction"
+
+        - name: "transactionEvaluationDeserializationError"
+          description: " Processing new transaction"
+        - name: "transactionEvaluationNotifyError"
+          description: " Processing new transaction"
+
+        - name: "enrichedTransactionError"
+          description: " Processing new transaction"
+channels:
+        splitter-process-transacion:
+                subscribe:
+                        message:
+                                $ref: '#/components/messages/ProcessTransaction'
+                        bindings:
+                                kafka:
+                                        topic: idpay-consumer-group
+                        tags:
+                                - name: "processTransaction"
+
+        splitter-send-transacion:
+                publish:
+                        message:
+                                $ref: '#/components/messages/SendTransaction'
+                        bindings:
+                                kafka:
+                                        topic: idpay-transaction-user-id-splitter
+                        tags:
+                                - name: "sendTransaction"
+
+        splitter-send-rejected-transacion:
+                publish:
+                        message:
+                                $ref: '#/components/messages/SendRejectedTransaction'
+                        bindings:
+                                kafka:
+                                        topic: idpay-transaction
+                        tags:
+                                - name: "sendRejectedTransaction"
+
+        splitter-deserialization-error:
+                publish:
+                        message:
+                                $ref: '#/components/messages/TransactionEvaluationDeserializationError'
+                        bindings:
+                                kafka:
+                                        topic: idpay-errors
+                        tags:
+                                - name: "transactionEvaluationDeserializationError"
+
+        splitter-notify-evaluation-error:
+                publish:
+                        message:
+                                $ref: '#/components/messages/TransactionEvaluationNotifyError'
+                        bindings:
+                                kafka:
+                                        topic: idpay-errors
+                        tags:
+                                - name: "transactionEvaluationNotifyError"
+
+        splitter-notify-transaction-error:
+                publish:
+                        message:
+                                $ref: '#/components/messages/EnrichedTransactionError'
+                        bindings:
+                                kafka:
+                                        topic: idpay-errors
+                        tags:
+                                - name: "enrichedTransactionError"
+components:
+        messages:
+                ProcessTransaction:
+                        contentType: application/json
+                        description: >-
+                                The HPAN associated with the received transaction needs to be resolved into a userId and sent with the transaction.
+                        summary: Notification to resolve HPAN to userId and process the transaction.
+                        payload:
+                                $ref: "#/components/schemas/TransactionDTO"
+                SendTransaction:
+                        contentType: application/json
+                        description: >-
+                                Send the transaction with the HPAN resolved into a userId.
+                        summary: Notification to send the transaction with resolved userId.
+                        payload:
+                                $ref: "#/components/schemas/TransactionEnrichedDTO"
+                SendRejectedTransaction:
+                        contentType: application/json
+                        description: >-
+                                Sent when it's not possible to resolve the HPAN to a userId.
+                        summary: Notification indicating rejection due to inability to resolve HPAN to userId.
+                        payload:
+                                $ref: "#/components/schemas/TransactionRejectedDTO"
+                TransactionEvaluationDeserializationError:
+                        contentType: application/json
+                        description: >-
+                                This event is generated when an error occurs during the deserialization of the payload in the transaction evaluation flow.
+                                It provides details about the deserialization failure.
+                        summary: Notification of an error during payload deserialization in the transaction evaluation flow.
+
+                        headers:
+                                $ref: "#/components/schemas/ErrorQueueHeader"
+                        payload:
+                                $ref: "#/components/schemas/TransactionDTO"
+                TransactionEvaluationNotifyError:
+                        contentType: application/json
+                        description: >-
+                                This event is generated when an error occurs during the processTransaction flow.
+                        summary: Notification of an error during the processTransaction flow.
+
+                        headers:
+                                $ref: "#/components/schemas/ErrorQueueHeader"
+                        payload:
+                                $ref: "#/components/schemas/TransactionDTO"
+                EnrichedTransactionError:
+                        contentType: application/json
+                        description: >-
+                                This event is generated when an unexpected error occurs while publishing a transaction after resolving the userId.
+                        summary: Notification of an unexpected error during transaction publishing after resolving the userId.
+                        headers:
+                                $ref: "#/components/schemas/ErrorQueueHeader"
+                        payload:
+                                $ref: "#/components/schemas/TransactionEnrichedDTO"
+        schemas:
+                TransactionDTO:
+                        type: object
+                        properties:
+                                idTrxAcquirer:
+                                        type: string
+                                        description: ID of the acquiring transaction
+                                        example: "198937549309371755007410777179935955803"
+                                acquirerCode:
+                                        type: string
+                                        description: Acquirer code
+                                        example: acquirerCode
+                                trxDate:
+                                        type: string
+                                        format: date-time
+                                        description: Transaction date
+                                        example: "2024-04-10T07:41:38.644+02:00"
+                                hpan:
+                                        type: string
+                                        description: hash personal account number
+                                        example: 5c6bda1b1f5f6238dcba70f9f4b5a77671eb2b1563b0ca6d15d14c649a9b7ce0
+                                operationType:
+                                        type: string
+                                        description: Operation typef
+                                        example: "00"
+                                circuitType:
+                                        type: string
+                                        description: Type of circuit
+                                        example: circuitType
+                                idTrxIssuer:
+                                        type: string
+                                        description: ID of the transaction issuer
+                                        example: APIMREQUESTID
+                                correlationId:
+                                        type: string
+                                        description: Correlation ID
+                                        example: ad300230-3f80-41f5-a5fc-70b1d47312d4_1712727698644
+                                amount:
+                                        type: integer
+                                        format: int64
+                                        description: Amount of the transaction in cents
+                                        example: 900000000
+                                amountCurrency:
+                                        type: string
+                                        description: Currency of the transaction amount
+                                        example: EUR
+                                mcc:
+                                        type: string
+                                        description: Merchant category code
+                                        example: "1234"
+                                acquirerId:
+                                        type: string
+                                        description: ID of the acquirer
+                                        example: PAGOPA
+                                merchantId:
+                                        type: string
+                                        description: ID of the merchant
+                                        example: b0d4c930-3f77-3959-8609-8c1e177966a0
+                                terminalId:
+                                        type: string
+                                        description: ID of the terminal
+                                        example: term_12345
+                                bin:
+                                        type: string
+                                        description: Bank Identification Number
+                                        example: 123456
+                                senderCode:
+                                        type: string
+                                        description: Sender code
+                                        example: user123
+                                fiscalCode:
+                                        type: string
+                                        description: Fiscal code
+                                        example: "82186210454"
+                                vat:
+                                        type: string
+                                        description: vat code of the merchant
+                                        example: "82186210454"
+                                posType:
+                                        type: string
+                                        example: Online
+                                par:
+                                        type: string
+                                        example: par_12345
+                TransactionEnrichedDTO:
+                        type: object
+                        allOf:
+                                - $ref: "#/components/schemas/TransactionDTO"
+                        properties:
+                                userId:
+                                        type: string
+                                        description: ID of the user associated with the transaction
+                                        example: bcf3651c-d2d3-4998-81a9-5f24302ab674
+                                brandLogo:
+                                        type: string
+                                        description: Logo of the brand
+                                brand:
+                                        type: string
+                                        description: brand
+                                maskedPan:
+                                        type: string
+                                        description: Masked PAN
+                                        example: 1234XXXXXXXX5678
+                                channel:
+                                        type: string
+                                        description: Channel of origin
+                                        example: APP_IO
+                TransactionRejectedDTO:
+                        type: object
+                        allOf:
+                                - $ref: "#/components/schemas/TransactionEnrichedDTO"
+                        properties:
+                                status:
+                                        type: string
+                                        description: Status of the rejected transaction
+                                        example: "REJECTED"
+                                rejectionReasons:
+                                        type: array
+                                        items:
+                                                type: string
+                                        description: List of reasons for rejection
+                                        example: ["Insufficient funds", "Expired card"]
+                ErrorQueueHeader:
+                        type: object
+                        properties:
+                                group:
+                                        type: string
+                                        description: The Kafka group to which the error message belongs.
+                                        example: "group"
+                                srcType:
+                                        type: string
+                                        description: The type of the source of the error message.
+                                        example: "kafka"
+                                srcServer:
+                                        type: string
+                                        description: The source server of the error message.
+                                        example: cstar-u-idpay-evh-ns-00.servicebus.windows.net:9093
+                                srcTopic:
+                                        type: string
+                                        description: The Kafka topic of the source of the error message.
+                                        example: idpay-transaction
+                                description:
+                                        type: string
+                                        description: Description of the error.
+                                        example: "[CONFIRM_PAYMENT] An error occurred while publishing the confirmation Payment result"
+                                retryable:
+                                        type: boolean
+                                        description: Indicates whether the error is retryable or not.
+                                stacktrace:
+                                        type: string
+                                        description: The stack trace of the error.
+                                        example: "InternalServerErrorException -> Something gone wrong while Confirm Payment notify"
+                                rootCauseClass:
+                                        type: string
+                                        description: Cause class of the error.
+                                        example: "java.lang.InternalServerErrorException"
+                                rootCauseMessage:
+                                        type: string
+                                        description: Message of the error.
+                                        example: "Something gone wrong while Confirm Payment notify"
