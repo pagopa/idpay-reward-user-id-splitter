@@ -16,14 +16,14 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 
-class CustomMongoHealthIndicatorTest {
+class CustomReactiveMongoHealthIndicatorTest {
     @Test
     void testMongoIsUp() {
         Document buildInfo = mock(Document.class);
         given(buildInfo.getInteger("maxWireVersion")).willReturn(10);
         ReactiveMongoTemplate reactiveMongoTemplate = mock(ReactiveMongoTemplate.class);
         given(reactiveMongoTemplate.executeCommand("{ isMaster: 1 }")).willReturn(Mono.just(buildInfo));
-        CustomMongoHealthIndicator mongoReactiveHealthIndicator = new CustomMongoHealthIndicator(
+        CustomReactiveMongoHealthIndicator mongoReactiveHealthIndicator = new CustomReactiveMongoHealthIndicator(
                 reactiveMongoTemplate);
         Mono<Health> health = mongoReactiveHealthIndicator.health();
         StepVerifier.create(health).consumeNextWith((h) -> {
@@ -37,7 +37,7 @@ class CustomMongoHealthIndicatorTest {
     void testMongoIsDown() {
         ReactiveMongoTemplate reactiveMongoTemplate = mock(ReactiveMongoTemplate.class);
         given(reactiveMongoTemplate.executeCommand("{ isMaster: 1 }")).willThrow(new MongoException("Connection failed"));
-        CustomMongoHealthIndicator mongoReactiveHealthIndicator = new CustomMongoHealthIndicator(
+        CustomReactiveMongoHealthIndicator mongoReactiveHealthIndicator = new CustomReactiveMongoHealthIndicator(
                 reactiveMongoTemplate);
         Mono<Health> health = mongoReactiveHealthIndicator.health();
         StepVerifier.create(health).consumeNextWith((h) -> {
