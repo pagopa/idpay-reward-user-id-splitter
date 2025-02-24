@@ -36,4 +36,5 @@ public class TransactionDTO {
     private String vat;
     private String posType;
     private String par;
+    private String businessName;
 }
