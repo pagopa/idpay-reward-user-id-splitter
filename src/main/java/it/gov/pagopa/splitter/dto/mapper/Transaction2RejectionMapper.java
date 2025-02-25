@@ -36,6 +36,7 @@ public class Transaction2RejectionMapper implements BiFunction<TransactionDTO,St
 
         out.getRejectionReasons().add(rejectionReason);
         out.setStatus("REJECTED");
+        out.setBusinessName(transactionDTO.getBusinessName());
         return out;
     }
 }

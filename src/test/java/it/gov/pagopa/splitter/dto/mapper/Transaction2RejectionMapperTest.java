@@ -43,11 +43,12 @@ class Transaction2RejectionMapperTest {
         Assertions.assertEquals(transactionDTO.getVat(),result.getVat());
         Assertions.assertEquals(transactionDTO.getPosType(),result.getPosType());
         Assertions.assertEquals(transactionDTO.getPar(),result.getPar());
+        Assertions.assertEquals(transactionDTO.getBusinessName(),result.getBusinessName());
 
         Assertions.assertNull(result.getUserId());
         Assertions.assertEquals("REJECTED", result.getStatus());
         Assertions.assertEquals(List.of(rejectionReason),result.getRejectionReasons());
 
-        TestUtils.checkNotNullFields(result, "userId", "maskedPan", "brandLogo", "brand", "channel","businessName");
+        TestUtils.checkNotNullFields(result, "userId", "maskedPan", "brandLogo", "brand", "channel");
     }
 }
