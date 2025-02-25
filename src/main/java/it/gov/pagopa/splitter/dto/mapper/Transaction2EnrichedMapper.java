@@ -40,6 +40,7 @@ public class Transaction2EnrichedMapper implements BiFunction<TransactionDTO, Hp
         out.setBrandLogo(hpanInitiatives.getBrandLogo());
         out.setBrand(hpanInitiatives.getBrand());
         out.setChannel(RewardUserIdSplitterConstants.TRX_CHANNEL_RTD);
+        out.setBusinessName(transactionDTO.getBusinessName());
         return out;
     }
 }

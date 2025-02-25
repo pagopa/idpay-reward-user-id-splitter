@@ -68,7 +68,8 @@ public class TransactionDTOFaker {
                 .fiscalCode("FISCALCODE%s".formatted(bias))
                 .vat("VAT%s".formatted(bias))
                 .posType("POSTYPE%s".formatted(bias))
-                .par("PAR%s".formatted(bias));
+                .par("PAR%s".formatted(bias))
+                .businessName("BUSINESSNAME%s".formatted(bias));
     }
 
     public static TransactionDTO mockInstanceWithNHpan(Integer bias, Integer hpanInitiativesNumber) {
