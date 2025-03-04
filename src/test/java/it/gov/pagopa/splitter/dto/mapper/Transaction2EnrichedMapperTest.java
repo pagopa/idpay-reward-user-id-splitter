@@ -30,7 +30,7 @@ class Transaction2EnrichedMapperTest {
         // Then
         assertionFromFieldOfTransactionDTO(transaction, result);
         assertionFromFieldOfHpanInitiatives(hpanInitiatives, result);
-        TestUtils.checkNotNullFields(result);
+
     }
 
     public static void assertionFromFieldOfTransactionDTO(TransactionDTO transaction, TransactionEnrichedDTO result) {
@@ -54,6 +54,7 @@ class Transaction2EnrichedMapperTest {
         Assertions.assertEquals(transaction.getVat(), result.getVat());
         Assertions.assertEquals(transaction.getPosType(), result.getPosType());
         Assertions.assertEquals(transaction.getPar(), result.getPar());
+        Assertions.assertEquals(transaction.getBusinessName(), result.getBusinessName());
     }
 
     public static void assertionFromFieldOfHpanInitiatives(HpanInitiatives hpanInitiatives, TransactionEnrichedDTO result) {

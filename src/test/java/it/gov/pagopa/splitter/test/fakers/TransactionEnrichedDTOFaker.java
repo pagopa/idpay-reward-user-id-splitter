@@ -76,7 +76,7 @@ public class TransactionEnrichedDTOFaker {
         out.brand("brand_%d_%s".formatted(bias, fakeValuesService.bothify("???")));
         out.channel(RewardUserIdSplitterConstants.TRX_CHANNEL_RTD);
 
-        TestUtils.checkNotNullFields(out);
+        TestUtils.checkNotNullFields(out,"businessName");
         return out;
     }
 }
