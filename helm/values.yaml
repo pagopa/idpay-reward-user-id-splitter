@@ -77,7 +77,6 @@ microservice-chart:
       KAFKA_CONFIG_SASL_MECHANISM: kafka_sasl_mechanism
       KAFKA_CONFIG_SECURITY_PROTOCOL: kafka_security_protocol
       KAFKA_TRANSACTION_USER_ID_SPLITTER_TOPIC: idpay_transaction_userid_splitter_topic
-      KAFKA_TRANSACTION_TOPIC: idpay_transaction_topic
       KAFKA_ERRORS_TOPIC: idpay_error_topic
 
   envSecret:
