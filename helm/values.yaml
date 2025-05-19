@@ -33,7 +33,6 @@ microservice-chart:
   ingress:
     create: true
     path: /idpay/splitter/(.*)
-    servicePort: 8080
 
   serviceAccount:
     create: false
